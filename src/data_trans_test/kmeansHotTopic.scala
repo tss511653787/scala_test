@@ -231,6 +231,7 @@ object kmeansFindPaperHotTopic {
       //      println("聚类中心" + k + "的每一条文档tf-idf最高词汇：")
       //      HotWords.map { x => print(x) }
       //      HotWords.repartition(1).saveAsTextFile(newpath+s"Hotword$k")
+//修改1
 
     }
 
