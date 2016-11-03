@@ -20,6 +20,7 @@ import breeze.linalg._
 import breeze.numerics.pow
 import scala.collection.mutable.WrappedArray
 import org.apache.spark.mllib.linalg.distributed.RowMatrix
+import scala.collection.mutable.ArrayBuffer
 
 object kmeansFindPaperHotTopic {
   def main(args: Array[String]) {
@@ -215,23 +216,39 @@ object kmeansFindPaperHotTopic {
       val wordsWithFeatureDF = vecTFIDF.select($"words", $"features", $"prediction")
       val wordsWithFeatureDFRdd = wordsWithFeatureDF.rdd.map {
         case Row(words: WrappedArray[String], features: Vector, prediction: Int) =>
-          (words, features, prediction)
+          //对words进行去重处理 使其可以和hash向量匹配
+          val distinctWords = words.distinct
+          (words, distinctWords, features, prediction)
       }
       wordsWithFeatureDFRdd.repartition(1).saveAsTextFile(newpath + s"wordsWithFeatureDFRdd$k")
       val RDDcount = wordsWithFeatureDFRdd.count
       if (RDDcount > 1) {
         val HotWords = wordsWithFeatureDFRdd.map {
-          case (words, features, prediction) =>
-            val maxHash = features.toSparse.argmax
+          case (words, distinctWords, features, prediction) =>
             val HashArray = features.toSparse.indices
+            val maxHash = features.toSparse.argmax
             val maxIndex = HashArray.indexOf(maxHash)
-            (words(maxIndex))
+            //想寻找一下每条文档中 最大10个tf-idf值所对应的词语
+
+            val tfidfarr = features.toSparse.toArray
+            tfidfarr.foreach(print)
+            //Queation 2016.11.3
+            //目前发现features.toarray转换是一个带0的向量 无法对应下标！！！
+            val arrbuf = new ArrayBuffer[String]()
+            for (i <- 1 to 10) {
+              //找到最大tf-idf值的去重words的下标
+              val maxindex = tfidfarr.indexOf(tfidfarr.max)
+              //从tf数组中删除刚找到的最大tf-idf值 不破坏顺序
+              tfidfarr(maxindex) = 0.0
+              arrbuf += distinctWords(maxindex) + " "
+            }
+            (arrbuf).toString
+
         }
+        println("聚类中心" + k + "的每一条文档tf-idf最高词汇：")
+        HotWords.map { x => print(x) }
+        HotWords.repartition(1).saveAsTextFile(newpath + s"Hotword$k")
       }
-      //      println("聚类中心" + k + "的每一条文档tf-idf最高词汇：")
-      //      HotWords.map { x => print(x) }
-      //      HotWords.repartition(1).saveAsTextFile(newpath+s"Hotword$k")
-//修改1
 
     }
 
