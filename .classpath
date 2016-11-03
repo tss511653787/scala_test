@@ -189,7 +189,7 @@
 	<classpathentry kind="lib" path="F:/biyeshejikaiti/spark_ML/spark-2.0.1-bin-hadoop2.6/jars/spark-hive-thriftserver_2.11-2.0.1.jar"/>
 	<classpathentry kind="lib" path="F:/biyeshejikaiti/spark_ML/spark-2.0.1-bin-hadoop2.6/jars/spark-launcher_2.11-2.0.1.jar"/>
 	<classpathentry kind="lib" path="F:/biyeshejikaiti/spark_ML/spark-2.0.1-bin-hadoop2.6/jars/spark-mllib_2.11-2.0.1.jar" sourcepath="F:/biyeshejikaiti/spark_ML/spark-2.0.1.zip"/>
-	<classpathentry kind="lib" path="F:/biyeshejikaiti/spark_ML/spark-2.0.1-bin-hadoop2.6/jars/spark-mllib-local_2.11-2.0.1.jar"/>
+	<classpathentry kind="lib" path="F:/biyeshejikaiti/spark_ML/spark-2.0.1-bin-hadoop2.6/jars/spark-mllib-local_2.11-2.0.1.jar" sourcepath="spark-2.0.1.zip"/>
 	<classpathentry kind="lib" path="F:/biyeshejikaiti/spark_ML/spark-2.0.1-bin-hadoop2.6/jars/spark-network-common_2.11-2.0.1.jar"/>
 	<classpathentry kind="lib" path="F:/biyeshejikaiti/spark_ML/spark-2.0.1-bin-hadoop2.6/jars/spark-network-shuffle_2.11-2.0.1.jar"/>
 	<classpathentry kind="lib" path="F:/biyeshejikaiti/spark_ML/spark-2.0.1-bin-hadoop2.6/jars/spark-repl_2.11-2.0.1.jar"/>

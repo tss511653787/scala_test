@@ -39,9 +39,9 @@ object testdata {
       x => {
         val list = AnaylyzerTools.anaylyzerWords(x) //按行进行map分词 结果返回Arraylist
         list.toString()
-        .replace("[", "").replace("]", "")
-        .replaceAll(" ", "").replaceAll(",", " ")
-        .replaceAll("[(]", "").replaceAll("[)]", "")
+          .replace("[", "").replace("]", "")
+          .replaceAll(" ", "").replaceAll(",", " ")
+          .replaceAll("[(]", "").replaceAll("[)]", "")
 
       })
     fenci.cache()
@@ -50,13 +50,29 @@ object testdata {
     val number = num.distinct().count()
     println("分词去重统计：" + number) //100行大概有6626的不重复单词
     //初步将： 分词结果 ，发帖时间 ， 回复数 作为输入数据
-    val inputData = fenci.zip(user_time).zip(user_recall)
+    val inputData = fenci
+      .zip(user_time)
+      .zip(user_recall)
+      .zipWithIndex
+
     val inputformat = inputData.map(line => {
       val temp = line.toString.replaceAll("[(]", "").replaceAll("[)]", "")
       temp
     })
-
-    inputformat.repartition(1).saveAsTextFile(newpath + "inputdata")
+    //位置整理
+    val input = inputformat.map {
+      line =>
+        val index = line.split(",")(3)
+        val text = line.split(",")(0)
+        val time = line.split(",")(1)
+        val recall = line.split(",")(2)
+        (index, text, time, recall)
+    }
+    val inputDataSet = input.map(line => {
+      val temp = line.toString.replaceAll("[(]", "").replaceAll("[)]", "")
+      temp
+    })
+    inputDataSet.repartition(1).saveAsTextFile(newpath + "inputdata")
 
     //正则过滤  还在进行。。。
     //    val regex = """[^0-9]*""".r
