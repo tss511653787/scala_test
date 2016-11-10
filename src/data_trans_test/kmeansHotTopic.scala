@@ -7,10 +7,13 @@ import org.apache.spark.ml.feature.Tokenizer
 import org.apache.spark.ml.feature.RegexTokenizer
 import org.apache.spark.ml.feature.HashingTF
 import org.apache.spark.ml.feature.IDF
+import org.apache.spark.mllib.feature.{ HashingTF => mlibHashingTF }
+import org.apache.spark.mllib.feature.{ IDF => mlibIDF }
 import org.apache.spark.mllib.linalg.Vectors
 import org.apache.spark.mllib.linalg.{ Vector => mllibVector }
 import org.apache.spark.ml.linalg.Vector
 import org.apache.spark.mllib.regression.LabeledPoint
+import org.apache.spark.mllib.linalg.SparseVector
 import scala.reflect.runtime.universe
 import org.apache.spark.ml.classification.NaiveBayesModel
 import org.apache.spark.ml.classification.NaiveBayes
@@ -18,11 +21,16 @@ import org.apache.spark.ml.evaluation.MulticlassClassificationEvaluator
 import java.io.PrintWriter
 import breeze.linalg._
 import breeze.numerics.pow
-import scala.collection.mutable.WrappedArray
 import org.apache.spark.mllib.linalg.distributed.RowMatrix
 import scala.collection.mutable.ArrayBuffer
+import scala.collection.mutable.WrappedArray
+import org.apache.log4j.Level
+import org.apache.log4j.Logger
 
 object kmeansFindPaperHotTopic {
+  //屏蔽日志
+  Logger.getLogger("org.apache.spark").setLevel(Level.WARN)
+  Logger.getLogger("org.eclipse.jetty.server").setLevel(Level.OFF)
   def main(args: Array[String]) {
     val conf = new SparkConf()
       .setMaster("local[2]")
@@ -56,12 +64,12 @@ object kmeansFindPaperHotTopic {
     //观察结果
     wordsData.cache
     wordsData.show
-    val newpath = "C:/Users/dell/Desktop/result/"
+    val newpath = "C:/Users/dell/Desktop/native/result/"
     // wordsData.rdd.repartition(1).saveAsTextFile(newpath+"text_words")
 
     //计算每个词在文档中的词频
     val hashingTF = new HashingTF()
-      .setNumFeatures(1000)
+      .setNumFeatures(4000)
       .setInputCol("words")
       .setOutputCol("hashWithTf")
     val featurizedData = hashingTF.transform(wordsData)
@@ -161,7 +169,7 @@ object kmeansFindPaperHotTopic {
       .saveAsTextFile(newpath + "kmeans-summary")
 
     val datapre = predictioned
-      .select($"index", $"words", $"features", $"prediction")
+      .select($"index", $"words", $"features", $"prediction", $"text")
       .rdd
 
     datapre.repartition(1).saveAsTextFile(newpath + "datapre")
@@ -169,94 +177,142 @@ object kmeansFindPaperHotTopic {
     def computeDistance(v1: DenseVector[Double], v2: DenseVector[Double]) = pow(v1 - v2, 2).sum
     //case匹配需要的属性
     val dataVectorComputeDist = datapre.map {
-      case Row(index: Int, words: WrappedArray[String], features: Vector, prediction: Int) =>
+      case Row(index: Int, words: WrappedArray[String], features: Vector, prediction: Int, text: String) =>
         val Center = kmeansModel.clusterCenters(prediction)
         val dist = computeDistance(DenseVector(Center.toArray), DenseVector(features.toArray))
-        (index, prediction, dist, words, features)
+        (index, prediction, dist, words, features, text)
     }
     dataVectorComputeDist.cache
     //[格式]：index,所属聚类编号,与聚类中心距离,分词向量,tf-idf向量
     //变成一个(k,v)的Map型 k是prediction
     val clusterAssignments = dataVectorComputeDist.groupBy {
-      case (index, prediction, dist, words, features) => prediction
+      case (index, prediction, dist, words, features, text) => prediction
     }.collectAsMap
     //输出每个类前10个向量结果 按与其聚类中心距离排序(K,V)按K排序
     for ((k, v) <- clusterAssignments.toSeq.sortBy(_._1)) {
       println(s"聚类中心 $k:")
       val m = v.toSeq.sortBy(_._3)
       print(m.take(10).map {
-        case (index, prediction, dist, words, features) => (index, prediction, dist, words)
+        case (index, prediction, dist, words, features, text) => (index, prediction, dist, words, text)
       }.mkString("\n"))
       println("\n")
     }
-    //对每个小类进行分组处理
-    //    val preAssignments = dataVectorComputeDist.groupBy {
-    //      case (index, prediction, dist, words, features) => prediction
-    //    }
-    //先按着TF-IDF的思路做一下试试
+    //使用mllib包中的TF-IDF方法对每个聚类族中进行热门词汇提取
     for ((k, v) <- clusterAssignments.toSeq.sortBy(_._1)) {
       val value = v.toSeq.sortBy(_._3)
       val vec = value.take(10).map {
-        case (index, prediction, dist, words, features) =>
-          (index, words, dist, prediction)
+        case (index, prediction, dist, words, features, text) =>
+          (index, words, dist, prediction, text)
           //重新打标签
-          NewDataRecord(index, words, dist, prediction)
+          NewDataRecord(index, words, dist, prediction, text)
       }
+      //将index words dist pre text转化成一个新的DataFrame
       val vecDF = vec.toDF()
+      //输出这个新的DF
       vecDF.show
-      val hashingTFIncluster = new HashingTF()
-        .setNumFeatures(1000)
-        .setInputCol("words")
-        .setOutputCol("NewhashWithTf")
-      val vecHashDF = hashingTFIncluster.transform(vecDF)
-      //新的features 在类内加权
-      val newidf = new IDF().setInputCol("NewhashWithTf").setOutputCol("features")
+      //提取text属性为后面建立词库
+      val rddtext = vecDF.rdd.map {
+        case Row(index: Int, words: WrappedArray[String], dist: Double, prediction: Int, text: String) =>
+          (text)
+      }
+      val rddtextseq = rddtext.map {
+        line =>
+          val words = line.split(" ")
+          words.toSeq
+      }
+      //提取索引属性
+      val rddvecIndex = vecDF.rdd.map {
+        case Row(index: Int, words: WrappedArray[String], dist: Double, prediction: Int, text: String) =>
+          (index)
+      }
+      //提取index, words, dist, prediction, text属性
+      val rddvecdata = vecDF.rdd.map {
+        case Row(index: Int, words: WrappedArray[String], dist: Double, prediction: Int, text: String) =>
+          (index, words, dist, prediction, text)
+      }
+      //Hashing必须使用的默认的维度向量 否组可能出错
+      //使用mllib中的HashingTF算法加载native哈希方法
+      val hashingTFIncluster = new mlibHashingTF()
+        .setHashAlgorithm("native")
+      val vecHashDF = hashingTFIncluster.transform(rddtextseq)
+      val newidf = new mlibIDF()
       val NewidfModel = newidf.fit(vecHashDF)
       val vecTFIDF = NewidfModel.transform(vecHashDF)
-      val wordsWithFeatureDF = vecTFIDF.select($"words", $"features", $"prediction")
+      //将训练好的Vector向量和加入到原有的DF中
+      //对index和Vector进行对应绑定
+      val rddvecIndexWithvecTFIDF = rddvecIndex.zip(vecTFIDF)
+      //绑定后传化为DataFrame格式
+      val rddvecIndexWithvecTFIDFDF = rddvecIndexWithvecTFIDF.toDF()
+      //用select修改列名_1==>index _2==> features
+      val rename = rddvecIndexWithvecTFIDFDF.select(rddvecIndexWithvecTFIDFDF("_1").as("index"), rddvecIndexWithvecTFIDFDF("_2").as("features"))
+      rename.cache
+      //两个DF进行join操作
+      val vecjoinIDF = vecDF.join(rename, vecDF("index") === rename("index"))
+      //输出连接结果
+      vecjoinIDF.show
+
+      //提取每个向量TF-IDF最高的词语
+      val wordsWithFeatureDF = vecjoinIDF.select($"words", $"prediction", $"features", $"text")
       val wordsWithFeatureDFRdd = wordsWithFeatureDF.rdd.map {
-        case Row(words: WrappedArray[String], features: Vector, prediction: Int) =>
-          //对words进行去重处理 使其可以和hash向量匹配
-          val distinctWords = words.distinct
-          (words, distinctWords, features, prediction)
+        case Row(words: WrappedArray[String], prediction: Int, features: mllibVector, text: String) =>
+          (words, prediction, features)
       }
-      wordsWithFeatureDFRdd.repartition(1).saveAsTextFile(newpath + s"wordsWithFeatureDFRdd$k")
-      val RDDcount = wordsWithFeatureDFRdd.count
+      //建立去重词库代码
+      val wordsarr = rddtextseq.map { line =>
+        val lineword = line.toArray
+        lineword
+      }
+      val arrWords = wordsarr.collect
+      //统计该类族中文档条数
+      val RDDcount = wordsWithFeatureDFRdd.count.toInt
+      //只对聚类中超过1条的类族进行提取(1条进行TF-IDF加权没有意义)
       if (RDDcount > 1) {
-        val HotWords = wordsWithFeatureDFRdd.map {
-          case (words, distinctWords, features, prediction) =>
-            val HashArray = features.toSparse.indices
-            val maxHash = features.toSparse.argmax
-            val maxIndex = HashArray.indexOf(maxHash)
-            //想寻找一下每条文档中 最大10个tf-idf值所对应的词语
-
-            val tfidfarr = features.toSparse.toArray
-            tfidfarr.foreach(print)
-            //Queation 2016.11.3
-            //目前发现features.toarray转换是一个带0的向量 无法对应下标！！！
-            val arrbuf = new ArrayBuffer[String]()
-            for (i <- 1 to 10) {
-              //找到最大tf-idf值的去重words的下标
-              val maxindex = tfidfarr.indexOf(tfidfarr.max)
-              //从tf数组中删除刚找到的最大tf-idf值 不破坏顺序
-              tfidfarr(maxindex) = 0.0
-              arrbuf += distinctWords(maxindex) + " "
-            }
-            (arrbuf).toString
-
+        //注意：
+        //假设我们只对大于10条的类族进行提取
+        //这里应为0-9可以写死
+        val temp = arrWords(0) ++ arrWords(1) ++ arrWords(2) ++ arrWords(3) ++ arrWords(4) ++ arrWords(5) ++ arrWords(6) ++ arrWords(7) ++ arrWords(8) ++ arrWords(9)
+        val distinctWords = temp.distinct
+        //去重词语保存
+        val savedistinct = new PrintWriter(newpath + "savedistinct")
+        distinctWords.foreach {
+          words => savedistinct.print(words.hashCode() + " ")
         }
-        println("聚类中心" + k + "的每一条文档tf-idf最高词汇：")
-        HotWords.map { x => print(x) }
-        HotWords.repartition(1).saveAsTextFile(newpath + s"Hotword$k")
+        savedistinct.close
+        //提取vector属性
+        val HotWordsvec = wordsWithFeatureDFRdd.map {
+          case (words, prediction, features) => features
+        }
+        HotWordsvec.repartition(1).saveAsTextFile(newpath + "HotWordsvec")
+        //提取词语代码
+        val HotWords = HotWordsvec.map {
+          case SparseVector(size, indices, values) =>
+            var hashnumarr = indices
+            var tfidfvalues = values
+            val arrbuf = new ArrayBuffer[String]
+            for (i <- 1 to 3) {
+              //寻找每个向量中tf-idf最大的3个词语
+              val findmax = tfidfvalues.indexOf(tfidfvalues.max)
+              //找到最大值后置0
+              tfidfvalues(findmax) = 0.0
+              val maxhashnum = hashnumarr(findmax)
+              for (word <- distinctWords) {
+                if (word.hashCode() == maxhashnum)
+                  arrbuf += word
+              }
+            }
+            arrbuf
+        }
+        //保存第K个聚类结果每条文档热词
+        HotWords.repartition(1).saveAsTextFile(newpath + s"HotWordCluster$k")
       }
-
     }
 
   }
 }
 
 case class RawDataRecord(index: Int, text: String, time: String, recall: Int)
-case class NewDataRecord(index: Int, words: WrappedArray[String], dist: Double, prediction: Int)
+case class NewDataRecord(index: Int, words: WrappedArray[String], dist: Double, prediction: Int, text: String)
+case class toCol(vec: mllibVector)
  
 
 
