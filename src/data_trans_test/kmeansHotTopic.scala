@@ -64,7 +64,7 @@ object kmeansFindPaperHotTopic {
     //观察结果
     wordsData.cache
     wordsData.show
-    val newpath = "C:/Users/dell/Desktop/native/result/"
+    val newpath = "C:/Users/dell/Desktop/result/KmeansResult/"
     // wordsData.rdd.repartition(1).saveAsTextFile(newpath+"text_words")
 
     //计算每个词在文档中的词频
@@ -304,6 +304,8 @@ object kmeansFindPaperHotTopic {
         }
         //保存第K个聚类结果每条文档热词
         HotWords.repartition(1).saveAsTextFile(newpath + s"HotWordCluster$k")
+        //以后完善 可以利用wordVec2 模型对提取到的关键词进行语意扩展
+        //WordVec2
       }
     }
 
