@@ -130,7 +130,7 @@ object LDAHotTopic {
     for (i <- Array(3, 4, 5, 6, 7, 8, 9, 10, 11, 12)) {
       val testlda = new LDA()
         .setK(i)
-        .setMaxIter(100)
+        .setMaxIter(30)
         .setOptimizer("online")
         .setFeaturesCol("LDAvec")
       val testmodel = testlda.fit(LDAinput)
@@ -138,6 +138,21 @@ object LDAHotTopic {
       numKlogll.print(testll + "\n")
     }
     numKlogll.close
+    //EM 方法，分析setDocConcentration的影响，计算(50/k)+1=50/5+1=11
+    val DocConcentrationloglp = new PrintWriter(outputpath + "DocConcentration")
+    for (i <- Array(1.2, 3, 5, 7, 9, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20)) {
+      val lda = new LDA()
+        .setK(5)
+        .setTopicConcentration(1.1)
+        .setDocConcentration(i)
+        .setOptimizer("em")
+        .setMaxIter(30)
+        .setFeaturesCol("LDAvec")
+      val model = lda.fit(LDAinput)
+      val lp = model.logPerplexity(LDAinput)
+      DocConcentrationloglp.print(lp + "\n")
+    }
+    DocConcentrationloglp.close
 
     //词语-主题矩阵 列代表每个词语在每个主题上的概率分布 行书是每个不重复词语
     val topicsMat = ldamodel.topicsMatrix
