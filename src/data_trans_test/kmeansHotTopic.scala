@@ -64,7 +64,7 @@ object kmeansFindPaperHotTopic {
     //观察结果
     wordsData.cache
     wordsData.show
-    val newpath = "C:/Users/dell/Desktop/result/KmeansResult/"
+    val newpath = "C:/Users/dell/Desktop/KmeansResult/"
     // wordsData.rdd.repartition(1).saveAsTextFile(newpath+"text_words")
 
     //计算每个词在文档中的词频

@@ -7,8 +7,13 @@ import org.apache.spark._
 import org.apache.spark.sql._
 import utils.AnaylyzerTools
 import org.apache.spark.mllib.regression.LabeledPoint
+import org.apache.log4j.Level
+import org.apache.log4j.Logger
 
 object testdata {
+  //屏蔽日志
+  Logger.getLogger("org.apache.spark").setLevel(Level.WARN)
+  Logger.getLogger("org.eclipse.jetty.server").setLevel(Level.OFF)
   def main(args: Array[String]) {
     val conf = new SparkConf()
       .setMaster("local[4]")
