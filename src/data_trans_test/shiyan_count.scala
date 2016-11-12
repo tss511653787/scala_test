@@ -25,12 +25,6 @@ object shiyan_count {
     import sqlContext.implicits._
     val input = "C:/Users/dell/Desktop/data/CountVecinput.txt"
     val src = spark.textFile(input)
-
-    //    val srcDS = src.map {
-    //      line =>
-    //        var data = line.split(" ")
-    //        countDataRecord(data(0))
-    //    }
     val countDF = src.toDF()
     countDF.show()
     val rextokenizer = new Tokenizer()
@@ -49,7 +43,12 @@ object shiyan_count {
       case Row(value:String,words:WrappedArray[String],vec:Vector)=>
         (vec.toDense)
     }
-    vec.repartition(1).saveAsTextFile(outputpath1+"Dencevec")
+    //vec.repartition(1).saveAsTextFile(outputpath1+"Dencevec")
+    val corup = vec.zipWithIndex.map (_.swap).cache()
+    corup.repartition(1).saveAsTextFile(outputpath1+"corup")
+
+    val arr = countvectorizermodel.vocabulary
+    arr.foreach { x => println(x) }
     
 
   }
