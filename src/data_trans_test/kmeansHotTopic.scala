@@ -161,6 +161,9 @@ object kmeansFindPaperHotTopic {
       .take(10)
       .foreach { println }
     predictioned.show(50)
+    //当前k-means++模型参数描述
+    println("当前Kmeans++模型的参数描述:")
+    println(kmeansModel.explainParams())
 
     //保存带有聚类了类簇标签的文件到指定文件夹
     predictioned

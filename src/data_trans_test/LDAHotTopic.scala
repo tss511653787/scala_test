@@ -8,14 +8,16 @@ import org.apache.spark.mllib.regression.LabeledPoint
 import org.apache.log4j.Level
 import org.apache.log4j.Logger
 import org.apache.spark.mllib.feature.HashingTF
-import org.apache.spark.mllib.feature.IDF
+import org.apache.spark.ml.feature.IDF
 import java.io.PrintWriter
 import org.apache.spark.ml.feature.CountVectorizer
 import org.apache.spark.ml.feature.Tokenizer
 import org.apache.spark.ml.clustering.LDA
+import org.apache.spark.ml.linalg.Vector
 import scala.collection.mutable.WrappedArray
 import scala.collection.mutable.ArrayBuffer
 import java.io.PrintWriter
+import org.apache.spark.ml.linalg.SparseVector
 
 object LDAHotTopic {
   //屏蔽日志
@@ -61,15 +63,19 @@ object LDAHotTopic {
     //LDA算法
     //LDA模型训练
     val topicnum = 5
-    val maxiter = 30
-    val LDAinput = LDAWithvec.select("index", "LDAvec")
+    val maxiter = 20
+    val Optimizermethods = "em"
+    //EM消耗大量内存 Online更快
+    val LDAinput = LDAWithvec.select("index", "words", "LDAvec")
     val lda = new LDA()
       .setK(topicnum)
       .setMaxIter(maxiter)
-      .setOptimizer("em")
+      .setOptimizer(Optimizermethods)
       .setFeaturesCol("LDAvec")
     val ldamodel = lda.fit(LDAinput)
     //模型描述
+    //println("当前模型参数描述:")
+    //println(ldamodel.explainParams())
     val wordnum = 10
     val topic = ldamodel
       .describeTopics(wordnum)
@@ -87,6 +93,11 @@ object LDAHotTopic {
         }
         (topic, str)
     }
+    //词语-主题矩阵 列代表每个词语在每个主题上的概率分布 行书是每个不重复词语
+    val topicsMat = ldamodel.topicsMatrix
+    println("词语-主题矩阵：")
+    println(topicsMat.toString)
+
     //整理转换
     val hottopicwordDF = hot.toDF()
     val rename = hottopicwordDF.select(hottopicwordDF("_1").as("topic"), hottopicwordDF("_2").as("words"))
@@ -97,16 +108,13 @@ object LDAHotTopic {
     //模型评估
     //模型的评价指标：logLikelihood，logPerplexity
     //（1）根据训练集的模型分布计算的log likelihood(对数似然率)，越大越好
+    /*
     val ll = ldamodel.logLikelihood(LDAinput)
     println("主题数" + topicnum + "的对数似然率:" + ll)
     //（2）Perplexity(复杂度)评估，越小越好
     val lp = ldamodel.logPerplexity(LDAinput)
     println("主题数" + topicnum + "的复杂度上界:" + lp)
 
-    //对语料进行聚类
-    val topicProb = ldamodel.transform(LDAinput)
-    topicProb.show
-    topicProb.rdd.repartition(1).saveAsTextFile(outputpath + "topicProb")
     //对参数进行调试
     //对迭代次数进行调试
     val llouput = new PrintWriter(outputpath + "llouput")
@@ -153,11 +161,83 @@ object LDAHotTopic {
       DocConcentrationloglp.print(lp + "\n")
     }
     DocConcentrationloglp.close
+   */
+    //对语料进行聚类
+    val topicProb = ldamodel.transform(LDAinput)
+    topicProb.show
+    topicProb.rdd.repartition(1).saveAsTextFile(outputpath + "topicProb")
+    //打类别标签
+    val topicdis = topicProb.map {
+      case Row(index: Int, words: WrappedArray[String], ldavec: Vector, topicDistribution: Vector) =>
+        val arrDouble = topicDistribution.toArray
+        val maxindex = arrDouble.indexOf(arrDouble.max)
+        val maxprobability = arrDouble.max
+        (index, words, ldavec, topicDistribution, maxprobability, maxindex)
+    }
+    val rawdatapre = topicdis.toDF()
+    //对列重命名
+    val datapre = rawdatapre.withColumnRenamed("_1", "index")
+      .withColumnRenamed("_2", "words")
+      .withColumnRenamed("_3", "LDAvec")
+      .withColumnRenamed("_4", "topicDistribution")
+      .withColumnRenamed("_5", "maxprobability")
+      .withColumnRenamed("_6", "prediction")
+    datapre.show
+    datapre.cache
+    val assignments = datapre.rdd.map {
+      case Row(index: Int, words: WrappedArray[String], ldavec: Vector, topicDistribution: Vector, maxprobability: Double, prediction: Int) =>
+        (index, words, ldavec, topicDistribution, maxprobability, prediction)
+    }
+    assignments.cache()
+    val clusterAssignments = assignments.groupBy {
+      case (index, words, ldavec, topicDistribution, maxprobability, prediction) => prediction
+    }.collectAsMap
+    for ((k, v) <- clusterAssignments.toSeq.sortBy(_._1)) {
+      //按着文档对出题的概率进行降序排列
+      val value = v.toSeq.sortWith(_._5 > _._5)
+      //提取概率最高的前10个文档做为输入
+      val vec = value.take(10)
+      val vecDF = vec.toDF()
+      val renamevecDF = vecDF.withColumnRenamed("_1", "index")
+        .withColumnRenamed("_2", "words")
+        .withColumnRenamed("_3", "LDAvec")
+        .withColumnRenamed("_4", "topicDistribution")
+        .withColumnRenamed("_5", "maxprobability")
+        .withColumnRenamed("_6", "prediction")
+      renamevecDF.rdd.repartition(1).saveAsTextFile(outputpath + s"vecDF$k")
+      //构建TF-Idf向量
+      val idf = new IDF()
+        .setInputCol("LDAvec")
+        .setOutputCol("TfIdfvec")
+      val idfmodel = idf.fit(renamevecDF)
+      val newDF = idfmodel.transform(renamevecDF)
+      newDF.rdd.repartition(1).saveAsTextFile(outputpath + s"newDF$k")
+      newDF.show
+      //从概率最高的10条文档中找到关键词 TF-IDF最大的10个词语
+      val TFIDFvec = newDF.rdd.map {
+        case Row(index: Int, words: WrappedArray[String], ldavec: Vector, topicDistribution: Vector, maxprobability: Double, prediction: Int, tfIdfvec: Vector) =>
+          tfIdfvec
+      }
+      val HotWords = TFIDFvec.map {
+        case SparseVector(size, indices, values) =>
+          var hashnumarr = indices
+          var tfidfvalues = values
+          val arrbuf = new ArrayBuffer[String]
+          for (i <- 1 to 3) {
+            //寻找每个向量中tf-idf最大的3个词语
+            val findmax = tfidfvalues.indexOf(tfidfvalues.max)
+            //找到最大值后置0
+            tfidfvalues(findmax) = 0.0
+            val maxnum = hashnumarr(findmax)
+            arrbuf += wordarr(maxnum)
+          }
+          arrbuf
+      }
+      HotWords.repartition(1).saveAsTextFile(outputpath + s"Cluster$k Hotwords")
+      //以后完善 可以利用wordVec2 模型对提取到的关键词进行语意扩展
+      //WordVec2
 
-    //词语-主题矩阵 列代表每个词语在每个主题上的概率分布 行书是每个不重复词语
-    val topicsMat = ldamodel.topicsMatrix
-    println("词语-主题矩阵：")
-    println(topicsMat.toString)
+    }
 
   }
 }
