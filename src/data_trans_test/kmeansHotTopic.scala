@@ -345,7 +345,7 @@ object kmeansFindPaperHotTopic {
               var temparr = wordvec2model.findSynonyms(arrbuf(i), 3)
               for (i <- 0 to 2) {
                 val str = temparr(i)._1
-                simarrbuf += str + " "
+                simarrbuf += str
               }
               simarrbuf += "|"
             }
