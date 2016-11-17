@@ -26,6 +26,7 @@ import scala.collection.mutable.ArrayBuffer
 import scala.collection.mutable.WrappedArray
 import org.apache.log4j.Level
 import org.apache.log4j.Logger
+import org.apache.spark.ml.feature.CountVectorizer
 
 object kmeansFindPaperHotTopic {
   //屏蔽日志
@@ -58,14 +59,18 @@ object kmeansFindPaperHotTopic {
     val rextokenizer = new Tokenizer()
       .setInputCol("text")
       .setOutputCol("words")
-
     val wordsData = rextokenizer.transform(trainingDF)
     println("text+words:")
+    //建立词库
+    val dicword = new CountVectorizer()
+    dicword.setInputCol("words").setOutputCol("wordsfrequency")
+    val Countmodel = dicword.fit(wordsData)
+    val wordarr = Countmodel.vocabulary
     //观察结果
     wordsData.cache
     wordsData.show
+    //存储路径
     val newpath = "C:/Users/dell/Desktop/KmeansResult/"
-    // wordsData.rdd.repartition(1).saveAsTextFile(newpath+"text_words")
 
     //计算每个词在文档中的词频
     val hashingTF = new HashingTF()
@@ -309,6 +314,9 @@ object kmeansFindPaperHotTopic {
         HotWords.repartition(1).saveAsTextFile(newpath + s"HotWordCluster$k")
         //以后完善 可以利用wordVec2 模型对提取到的关键词进行语意扩展
         //WordVec2
+      } else {
+        //该类簇中只有一条文本
+
       }
     }
 
