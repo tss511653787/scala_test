@@ -18,6 +18,7 @@ import scala.collection.mutable.WrappedArray
 import scala.collection.mutable.ArrayBuffer
 import java.io.PrintWriter
 import org.apache.spark.ml.linalg.SparseVector
+import org.apache.spark.mllib.feature.Word2Vec
 
 object LDAHotTopic {
   //屏蔽日志
@@ -76,6 +77,7 @@ object LDAHotTopic {
     //模型描述
     //println("当前模型参数描述:")
     //println(ldamodel.explainParams())
+    //列举每个主题中权重最大的10个词语
     val wordnum = 10
     val topic = ldamodel
       .describeTopics(wordnum)
@@ -104,11 +106,11 @@ object LDAHotTopic {
     val topicWithword = rename.toDF()
     topicWithword.show
     hot.repartition(1).saveAsTextFile(outputpath + "hot")
-
+    /*
     //模型评估
     //模型的评价指标：logLikelihood，logPerplexity
     //（1）根据训练集的模型分布计算的log likelihood(对数似然率)，越大越好
-    /*
+    
     val ll = ldamodel.logLikelihood(LDAinput)
     println("主题数" + topicnum + "的对数似然率:" + ll)
     //（2）Perplexity(复杂度)评估，越小越好
@@ -134,26 +136,27 @@ object LDAHotTopic {
     llouput.close
     lpouput.close
     //主题数目K对logLikelihood值的影响
+    //问题：可能由于目前数据量很小 k值在3-20间logll值一直递减
     val numKlogll = new PrintWriter(outputpath + "numKlogll")
     for (i <- Array(3, 4, 5, 6, 7, 8, 9, 10, 11, 12)) {
       val testlda = new LDA()
         .setK(i)
         .setMaxIter(30)
-        .setOptimizer("online")
+        .setOptimizer("em")
         .setFeaturesCol("LDAvec")
       val testmodel = testlda.fit(LDAinput)
       val testll = testmodel.logLikelihood(LDAinput)
       numKlogll.print(testll + "\n")
     }
     numKlogll.close
-    //EM 方法，分析setDocConcentration的影响，计算(50/k)+1=50/5+1=11
+    //EM 方法，分析DocConcentration的影响，算法默认值是(50/k)+1
     val DocConcentrationloglp = new PrintWriter(outputpath + "DocConcentration")
     for (i <- Array(1.2, 3, 5, 7, 9, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20)) {
       val lda = new LDA()
         .setK(5)
         .setTopicConcentration(1.1)
         .setDocConcentration(i)
-        .setOptimizer("em")
+        .setOptimizer("online")
         .setMaxIter(30)
         .setFeaturesCol("LDAvec")
       val model = lda.fit(LDAinput)
@@ -236,6 +239,32 @@ object LDAHotTopic {
       HotWords.repartition(1).saveAsTextFile(outputpath + s"Cluster$k Hotwords")
       //以后完善 可以利用wordVec2 模型对提取到的关键词进行语意扩展
       //WordVec2
+      //利用wordVec2 模型对提取到的关键词进行语意扩展
+      //wordvec2arrbu存贮对单个单词的语意扩展词组
+      val wordvec2word = newDF.rdd.map {
+        case Row(index: Int, words: WrappedArray[String], ldavec: Vector, topicDistribution: Vector, maxprobability: Double, prediction: Int, tfIdfvec: Vector) =>
+          words.toSeq
+      }
+      //设置最小词频
+      //目前需要所有词所以先设置为1
+      val minfrewords = 1
+      val wordvec = new Word2Vec()
+      wordvec.setMinCount(minfrewords)
+      val wordvec2model = wordvec.fit(wordvec2word)
+      val similarwords = HotWords.map {
+        arrbuf =>
+          val simarrbuf = new ArrayBuffer[String]
+          for (i <- 0 to arrbuf.length - 1) {
+            var temparr = wordvec2model.findSynonyms(arrbuf(i), 3)
+            for (i <- 0 to 2) {
+              val str = temparr(i)._1
+              simarrbuf += str + " "
+            }
+            simarrbuf += "|"
+          }
+          simarrbuf
+      }
+      similarwords.repartition(1).saveAsTextFile(outputpath + s"similarwords$k")
 
     }
 

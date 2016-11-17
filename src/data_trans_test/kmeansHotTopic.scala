@@ -7,6 +7,7 @@ import org.apache.spark.ml.feature.Tokenizer
 import org.apache.spark.ml.feature.RegexTokenizer
 import org.apache.spark.ml.feature.HashingTF
 import org.apache.spark.ml.feature.IDF
+import org.apache.spark.ml.linalg.{ SparseVector => mlSparseVector }
 import org.apache.spark.mllib.feature.{ HashingTF => mlibHashingTF }
 import org.apache.spark.mllib.feature.{ IDF => mlibIDF }
 import org.apache.spark.mllib.linalg.Vectors
@@ -27,6 +28,8 @@ import scala.collection.mutable.WrappedArray
 import org.apache.log4j.Level
 import org.apache.log4j.Logger
 import org.apache.spark.ml.feature.CountVectorizer
+import org.apache.spark.ml.feature.Word2Vec
+import org.apache.spark.mllib.feature.{ Word2Vec => mlibWord2Vec }
 
 object kmeansFindPaperHotTopic {
   //屏蔽日志
@@ -275,12 +278,13 @@ object kmeansFindPaperHotTopic {
       val RDDcount = wordsWithFeatureDFRdd.count.toInt
       //只对聚类中超过1条的类族进行提取(1条进行TF-IDF加权没有意义)
       if (RDDcount > 1) {
-        //注意：
-        //假设我们只对大于10条的类族进行提取
-        //这里应为0-9可以写死
-        val temp = arrWords(0) ++ arrWords(1) ++ arrWords(2) ++ arrWords(3) ++ arrWords(4) ++ arrWords(5) ++ arrWords(6) ++ arrWords(7) ++ arrWords(8) ++ arrWords(9)
-        val distinctWords = temp.distinct
-        //去重词语保存
+        val temp = new ArrayBuffer[String]
+        for (i <- 0 to arrWords.length - 1) {
+          temp ++= arrWords(i)
+        }
+        val tem = temp.toArray
+        val distinctWords = tem.distinct
+        //去重词语保存Hash值
         val savedistinct = new PrintWriter(newpath + "savedistinct")
         distinctWords.foreach {
           words => savedistinct.print(words.hashCode() + " ")
@@ -291,6 +295,25 @@ object kmeansFindPaperHotTopic {
           case (words, prediction, features) => features
         }
         HotWordsvec.repartition(1).saveAsTextFile(newpath + "HotWordsvec")
+        val wordvec2row = wordsWithFeatureDFRdd.toDF()
+        val wordvec2re = wordvec2row
+          .withColumnRenamed("_1", "words")
+          .withColumnRenamed("_2", "prediction")
+          .withColumnRenamed("_3", "features")
+        val wordvec2input = wordvec2re.rdd.map {
+          case Row(words: WrappedArray[String], prediction: Int, features: mllibVector) =>
+            words.toSeq
+        }
+        wordvec2input.repartition(1).saveAsTextFile(newpath + "wordvec2input")
+        //设置最小词频
+        //目前需要所有词所以先设置为1
+        val minfrewords = 1
+        val wordvec = new mlibWord2Vec()
+        wordvec.setMinCount(minfrewords)
+        //训练过程
+        val wordvec2model = wordvec.fit(wordvec2input)
+        //利用wordvec2模型也可以对文本数据进行向量化
+        //用来将词表示为数值型向量的工具，其基本思想是将文本中的词映射成一个 K 维数值向量
         //提取词语代码
         val HotWords = HotWordsvec.map {
           case SparseVector(size, indices, values) =>
@@ -304,19 +327,64 @@ object kmeansFindPaperHotTopic {
               tfidfvalues(findmax) = 0.0
               val maxhashnum = hashnumarr(findmax)
               for (word <- distinctWords) {
-                if (word.hashCode() == maxhashnum)
+                if (word.hashCode() == maxhashnum) {
                   arrbuf += word
+                }
               }
             }
             arrbuf
         }
         //保存第K个聚类结果每条文档热词
         HotWords.repartition(1).saveAsTextFile(newpath + s"HotWordCluster$k")
-        //以后完善 可以利用wordVec2 模型对提取到的关键词进行语意扩展
-        //WordVec2
+        //利用wordVec2 模型对提取到的关键词进行语意扩展
+        //wordvec2arrbu存贮对单个单词的语意扩展词组
+        val similarwords = HotWords.map {
+          arrbuf =>
+            val simarrbuf = new ArrayBuffer[String]
+            for (i <- 0 to arrbuf.length - 1) {
+              var temparr = wordvec2model.findSynonyms(arrbuf(i), 3)
+              for (i <- 0 to 2) {
+                val str = temparr(i)._1
+                simarrbuf += str + " "
+              }
+              simarrbuf += "|"
+            }
+            simarrbuf
+        }
+        similarwords.repartition(1).saveAsTextFile(newpath + s"similarwords$k")
+
       } else {
         //该类簇中只有一条文本
+        val countwordsfreRDD = wordsWithFeatureDFRdd.toDF()
+        val renameRDD = countwordsfreRDD
+          .withColumnRenamed("_1", "words")
+          .withColumnRenamed("_2", "prediction")
+          .withColumnRenamed("_3", "features")
+        val newcountwords = new CountVectorizer()
+        newcountwords.setInputCol("words").setOutputCol("wordsFrequency")
+        val countwords = newcountwords.fit(renameRDD)
+        val rescount = countwords.transform(renameRDD)
+        rescount.show
+        val wordarr = countwords.vocabulary
+        val wordsFreArr = rescount.rdd.map {
+          case Row(words: WrappedArray[String], prediction: Int, features: mllibVector, wordsFrequency: Vector) =>
+            wordsFrequency
+        }
+        val Hotwords = wordsFreArr.map {
+          case mlSparseVector(size, indices, values) =>
+            var hashnumarr = indices
+            var tfidfvalues = values
+            val arrbuf = new ArrayBuffer[String]
+            for (i <- 1 to 3) {
+              val findmax = tfidfvalues.indexOf(tfidfvalues.max)
+              tfidfvalues(findmax) = 0.0
+              val maxhashnum = hashnumarr(findmax)
+              arrbuf += wordarr(maxhashnum)
+            }
+            arrbuf
 
+        }
+        Hotwords.repartition(1).saveAsTextFile(newpath + s"HotWordCluster$k")
       }
     }
 
