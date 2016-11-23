@@ -33,7 +33,7 @@ object LDAHotTopic {
     import sqlContext.implicits._
     val inputpath = "C:/Users/dell/Desktop/data/"
     val outputpath = "C:/Users/dell/Desktop/LDAresult/"
-    val src = spark.textFile(inputpath + "kmeans1")
+    val src = spark.textFile(inputpath + "kmeans2")
     val srcDS = src.map {
       line =>
         var data = line.split(",")
@@ -64,8 +64,8 @@ object LDAHotTopic {
     //LDA算法
     //LDA模型训练
     val topicnum = 5
-    val maxiter = 20
-    val Optimizermethods = "em"
+    val maxiter = 100
+    val Optimizermethods = "online"
     //EM消耗大量内存 Online更快
     val LDAinput = LDAWithvec.select("index", "words", "LDAvec")
     val lda = new LDA()
@@ -106,11 +106,11 @@ object LDAHotTopic {
     val topicWithword = rename.toDF()
     topicWithword.show
     hot.repartition(1).saveAsTextFile(outputpath + "hot")
-    /*
+
     //模型评估
     //模型的评价指标：logLikelihood，logPerplexity
     //（1）根据训练集的模型分布计算的log likelihood(对数似然率)，越大越好
-    
+
     val ll = ldamodel.logLikelihood(LDAinput)
     println("主题数" + topicnum + "的对数似然率:" + ll)
     //（2）Perplexity(复杂度)评估，越小越好
@@ -119,30 +119,30 @@ object LDAHotTopic {
 
     //对参数进行调试
     //对迭代次数进行调试
-    val llouput = new PrintWriter(outputpath + "llouput")
-    val lpouput = new PrintWriter(outputpath + "lpouput")
-    for (i <- Array(5, 10, 20, 40, 60, 120, 200, 500)) {
-      val testlda = new LDA()
-        .setK(topicnum)
-        .setMaxIter(i)
-        .setOptimizer("online")
-        .setFeaturesCol("LDAvec")
-      val testmodel = testlda.fit(LDAinput)
-      val testll = testmodel.logLikelihood(LDAinput)
-      val testlp = testmodel.logPerplexity(LDAinput)
-      llouput.print(testll + "\n")
-      lpouput.print(testlp + "\n")
-    }
-    llouput.close
-    lpouput.close
+    //    val llouput = new PrintWriter(outputpath + "llouput")
+    //    val lpouput = new PrintWriter(outputpath + "lpouput")
+    //    for (i <- Array(5, 10, 20, 40, 60, 120, 200, 500)) {
+    //      val testlda = new LDA()
+    //        .setK(topicnum)
+    //        .setMaxIter(i)
+    //        .setOptimizer("online")
+    //        .setFeaturesCol("LDAvec")
+    //      val testmodel = testlda.fit(LDAinput)
+    //      val testll = testmodel.logLikelihood(LDAinput)
+    //      val testlp = testmodel.logPerplexity(LDAinput)
+    //      llouput.print(testll + "\n")
+    //      lpouput.print(testlp + "\n")
+    //    }
+    //    llouput.close
+    //    lpouput.close
     //主题数目K对logLikelihood值的影响
     //问题：可能由于目前数据量很小 k值在3-20间logll值一直递减
     val numKlogll = new PrintWriter(outputpath + "numKlogll")
-    for (i <- Array(3, 4, 5, 6, 7, 8, 9, 10, 11, 12)) {
+    for (i <- Array(3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20)) {
       val testlda = new LDA()
         .setK(i)
-        .setMaxIter(30)
-        .setOptimizer("em")
+        .setMaxIter(100)
+        .setOptimizer("online")
         .setFeaturesCol("LDAvec")
       val testmodel = testlda.fit(LDAinput)
       val testll = testmodel.logLikelihood(LDAinput)
@@ -150,21 +150,21 @@ object LDAHotTopic {
     }
     numKlogll.close
     //EM 方法，分析DocConcentration的影响，算法默认值是(50/k)+1
-    val DocConcentrationloglp = new PrintWriter(outputpath + "DocConcentration")
-    for (i <- Array(1.2, 3, 5, 7, 9, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20)) {
-      val lda = new LDA()
-        .setK(5)
-        .setTopicConcentration(1.1)
-        .setDocConcentration(i)
-        .setOptimizer("online")
-        .setMaxIter(30)
-        .setFeaturesCol("LDAvec")
-      val model = lda.fit(LDAinput)
-      val lp = model.logPerplexity(LDAinput)
-      DocConcentrationloglp.print(lp + "\n")
-    }
-    DocConcentrationloglp.close
-   */
+    //    val DocConcentrationloglp = new PrintWriter(outputpath + "DocConcentration")
+    //    for (i <- Array(1.2, 3, 5, 7, 9, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20)) {
+    //      val lda = new LDA()
+    //        .setK(5)
+    //        .setTopicConcentration(1.1)
+    //        .setDocConcentration(i)
+    //        .setOptimizer("online")
+    //        .setMaxIter(30)
+    //        .setFeaturesCol("LDAvec")
+    //      val model = lda.fit(LDAinput)
+    //      val lp = model.logPerplexity(LDAinput)
+    //      DocConcentrationloglp.print(lp + "\n")
+    //    }
+    //    DocConcentrationloglp.close
+
     //对语料进行聚类
     val topicProb = ldamodel.transform(LDAinput)
     topicProb.show
@@ -258,7 +258,7 @@ object LDAHotTopic {
             var temparr = wordvec2model.findSynonyms(arrbuf(i), 3)
             for (i <- 0 to 2) {
               val str = temparr(i)._1
-              simarrbuf +=str
+              simarrbuf += str
             }
             simarrbuf += "|"
           }

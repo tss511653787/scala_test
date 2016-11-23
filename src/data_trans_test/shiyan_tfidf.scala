@@ -21,7 +21,7 @@ object shiyan_tfidf {
       .setMaster("local[2]")
       .setAppName("tf-idfTest")
     val spark = new SparkContext(conf)
-    val input = "C:/Users/dell/Desktop/data/savedistinct"
+    val input = "C:/Users/dell/Desktop/data/data_text.txt"
     val src = spark.textFile(input)
     val wordsData = src.map { line =>
       val words = line.split(" ")

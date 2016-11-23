@@ -45,19 +45,16 @@ object kmeansFindPaperHotTopic {
     import sqlContext.implicits._
     //读取数据
     val inputpath = "C:/Users/dell/Desktop/data/"
-    val src = spark.textFile(inputpath + "kmeans1")
+    val src = spark.textFile(inputpath + "kmeans2")
     val srcDS = src.map {
       line =>
         var data = line.split(",")
         RawDataRecord(data(0).toInt, data(1), data(2), data(3).toInt)
     }
-
-    //70%作为训练数据，30%作为测试数据
-    //    val splits = srcDS.randomSplit(Array(0.7, 0.3))
     //将打标签的数据转换成DataFrame数据格式
     val trainingDF = srcDS.toDF()
     //    val testDF = src.toDF()
-
+    trainingDF.show
     //将词语转换成数据,Tokenizer是按着空格切分
     val rextokenizer = new Tokenizer()
       .setInputCol("text")
@@ -118,7 +115,7 @@ object kmeansFindPaperHotTopic {
 
     //k-means
     //模型参数
-    val Knumber = 5
+    val Knumber = 10
     val MaxIter = 30
     val seednum = 1L
     val kmeans = new KMeans()
@@ -294,7 +291,7 @@ object kmeansFindPaperHotTopic {
         val HotWordsvec = wordsWithFeatureDFRdd.map {
           case (words, prediction, features) => features
         }
-        HotWordsvec.repartition(1).saveAsTextFile(newpath + "HotWordsvec")
+        HotWordsvec.repartition(1).saveAsTextFile(newpath + s"HotWordsvec$k")
         val wordvec2row = wordsWithFeatureDFRdd.toDF()
         val wordvec2re = wordvec2row
           .withColumnRenamed("_1", "words")
@@ -304,7 +301,7 @@ object kmeansFindPaperHotTopic {
           case Row(words: WrappedArray[String], prediction: Int, features: mllibVector) =>
             words.toSeq
         }
-        wordvec2input.repartition(1).saveAsTextFile(newpath + "wordvec2input")
+        wordvec2input.repartition(1).saveAsTextFile(newpath + s"wordvecinput$k")
         //设置最小词频
         //目前需要所有词所以先设置为1
         val minfrewords = 1

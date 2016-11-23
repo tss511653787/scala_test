@@ -9,7 +9,7 @@ import org.apache.spark.mllib.classification.NaiveBayes
 import org.apache.spark.mllib.evaluation.MulticlassMetrics
 object Newsgroups {
   def main(args: Array[String]) {
-    val sc = new SparkContext("local[4]", "20Newsgroups")
+    val sc = new SparkContext("local", "20Newsgroups")
     val path = "hdfs://tss.hadoop2-1:8020/user/root/dataSet/20news-bydate/20news-bydate-train/*"
     //val path = "20news-bydate/20news-bydate-train/*"
     val rdd = sc.wholeTextFiles(path)

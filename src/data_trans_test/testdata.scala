@@ -16,70 +16,81 @@ object testdata {
   Logger.getLogger("org.eclipse.jetty.server").setLevel(Level.OFF)
   def main(args: Array[String]) {
     val conf = new SparkConf()
-      .setMaster("local[4]")
+      .setMaster("local[2]")
       .setAppName("testdata")
 
     val sc = new SparkContext(conf)
-    val path = "C:/Users/dell/Desktop/data/Cardata50.csv"
-    //path:hdfs://tss.hadoop2-1:8020/user/root/dataSet/data/test2_bsk.csv
+    val sqlContext = new org.apache.spark.sql.SQLContext(sc)
+    import sqlContext.implicits._
+    val path = "C:/Users/dell/Desktop/data/Cardata250.csv"
+    //path:hdfs://tss.hadoop2-1:8020/user/root/dataSet/data/test2_bsk.csv C:/Users/dell/Desktop/data/Cardata250.csv
     //读取文件
     val text = sc.textFile(path)
     text.cache()
     //获取列数据
-    val user_title = text.map(_.split(",")(0))
-    val user_content = text.map(_.split(",")(1))
-    val user_text = text.map(_.split(",")(2))
-    val user_name = text.map(_.split(",")(3))
-    val user_time = text.map(_.split(",")(4))
-    val user_recall = text.map(_.split(",")(5))
-    val user_net = text.map(_.split(",")(6))
-
-    //测试列级提取
-    val newpath = "C:/Users/dell/Desktop/ouput/"
-    user_text.cache
-    user_text.repartition(1).saveAsTextFile(newpath + "inputtext")
-    user_text.cache
-    //分词处理
-    val fenci = user_text.map(
-      x => {
-        val list = AnaylyzerTools.anaylyzerWords(x) //按行进行map分词 结果返回Arraylist
-        list.toString()
-          .replace("[", "").replace("]", "")
-          .replaceAll(" ", "").replaceAll(",", " ")
-          .replaceAll("[(]", "").replaceAll("[)]", "")
-
-      })
-    fenci.cache()
-    //统计单词
-    val num = fenci.flatMap(_.split(" "))
-    val number = num.distinct().count()
-    println("分词去重统计：" + number) //100行大概有6626的不重复单词
-    //初步将： 分词结果 ，发帖时间 ， 回复数 作为输入数据
-    val inputData = fenci
-      .zip(user_time)
-      .zip(user_recall)
-      .zipWithIndex
-
-    val inputformat = inputData.map(line => {
-      val temp = line.toString.replaceAll("[(]", "").replaceAll("[)]", "")
-      temp
-    })
-    //位置整理
-    val input = inputformat.map {
-      line =>
-        val index = line.split(",")(3)
-        val text = line.split(",")(0)
-        val time = line.split(",")(1)
-        val recall = line.split(",")(2)
-        (index, text, time, recall)
+    val data = text.map {
+      rawline =>
+        val splitdata = rawline.split(",")
+        DataRecord(splitdata(0), splitdata(1), splitdata(2), splitdata(3), splitdata(4), splitdata(5).toInt, splitdata(6))
     }
-    val inputDataSet = input.map(line => {
-      val temp = line.toString.replaceAll("[(]", "").replaceAll("[)]", "")
-      temp
-    })
-    inputDataSet.repartition(1).saveAsTextFile(newpath + "inputdata")
+    val dataDF = data.toDF
+    dataDF.show
+    //保存dataDF
+    val newpath = "C:/Users/dell/Desktop/ouput/"
+    dataDF.rdd.repartition(1).saveAsTextFile(newpath + "dataDF")
+    //分词处理
+    val list = dataDF.rdd.map {
+      case Row(title: String, content: String, text: String, name: String, time: String, recall: Int, net: String) =>
+        val splitword = AnaylyzerTools.anaylyzerWords(text)
+        System.runFinalization()
+        val arrword = splitword.toArray()
+        splitword.toArray()
 
-    //正则过滤  还在进行。。。
+    }
+    list.repartition(1).saveAsTextFile(newpath + "list")
+    //    user_text.repartition(500)
+    //    val fenci = user_text.map(
+    //      line => {
+    //        //内存不足错误 GC 
+    //        //需完善
+    //        val list = AnaylyzerTools.anaylyzerWords(line) //按行进行map分词 结果返回Arraylist
+    //        list.toString()
+    //          .replace("[", "").replace("]", "")
+    //          .replaceAll(" ", "").replaceAll(",", " ")
+    //          .replaceAll("[(]", "").replaceAll("[)]", "")
+    //      })
+    //    fenci.cache()
+    //    //统计单词
+    //    val num = fenci.flatMap(_.split(" "))
+    //    val number = num.distinct().count()
+    //    println("分词去重统计：" + number)
+    //    //100行大概有6626的不重复单词
+    //    //初步将： 分词结果 ，发帖时间 ， 回复数 作为输入数据
+    //    val inputData = fenci
+    //      .zip(user_time)
+    //      .zip(user_recall)
+    //      .zipWithIndex
+    //
+    //    val inputformat = inputData.map(line => {
+    //      val temp = line.toString.replaceAll("[(]", "").replaceAll("[)]", "")
+    //      temp
+    //    })
+    //    //位置整理
+    //    val input = inputformat.map {
+    //      line =>
+    //        val index = line.split(",")(3)
+    //        val text = line.split(",")(0)
+    //        val time = line.split(",")(1)
+    //        val recall = line.split(",")(2)
+    //        (index, text, time, recall)
+    //    }
+    //    val inputDataSet = input.map(line => {
+    //      val temp = line.toString.replaceAll("[(]", "").replaceAll("[)]", "")
+    //      temp
+    //    })
+    //    inputDataSet.repartition(1).saveAsTextFile(newpath + "inputdata")
+
+    //正则过滤  还在进行
     //    val regex = """[^0-9]*""".r
     //    val fenci_filter = fenci.map { line =>
     //      line.split(", ").filter(token => regex.pattern.matcher(token).matches)
@@ -87,3 +98,4 @@ object testdata {
 
   }
 }
+case class DataRecord(title: String, content: String, text: String, name: String, time: String, recall: Int, Net: String)
