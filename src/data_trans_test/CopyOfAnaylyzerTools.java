@@ -30,7 +30,7 @@ public class CopyOfAnaylyzerTools {
 		ASegment seg = null;
 		try {
 			seg = (ASegment) SegmentFactory.createJcseg(
-					JcsegTaskConfig.COMPLEX_MODE, new Object[] { config, dic });
+					JcsegTaskConfig.DETECT_MODE, new Object[] { config, dic });
 
 		} catch (JcsegException e1) {
 			e1.printStackTrace();

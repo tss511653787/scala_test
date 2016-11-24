@@ -41,10 +41,10 @@ object testdata {
     //分词处理
     val list = dataDF.rdd.map {
       case Row(title: String, content: String, text: String, name: String, time: String, recall: Int, net: String) =>
-        val splitword = AnaylyzerTools.anaylyzerWords(text)
-        System.runFinalization()
-        val arrword = splitword.toArray()
-        splitword.toArray()
+      //        val splitword = AnaylyzerTools.anaylyzerWords(text)
+      //        System.runFinalization()
+      //        val arrword = splitword.toArray()
+      //        splitword.toArray()
 
     }
     list.repartition(1).saveAsTextFile(newpath + "list")
