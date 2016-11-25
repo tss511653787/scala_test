@@ -21,7 +21,7 @@ public class AnaylyzerTools {
 		ASegment seg = null;
 		try {
 			seg = (ASegment) SegmentFactory.createJcseg(
-					JcsegTaskConfig.DETECT_MODE, new Object[] { config, dic });
+					JcsegTaskConfig.COMPLEX_MODE, new Object[] { config, dic });
 
 		} catch (JcsegException e1) {
 			e1.printStackTrace();

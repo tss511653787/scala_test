@@ -30,7 +30,7 @@ public class CopyOfAnaylyzerTools {
 		ASegment seg = null;
 		try {
 			seg = (ASegment) SegmentFactory.createJcseg(
-					JcsegTaskConfig.DETECT_MODE, new Object[] { config, dic });
+					JcsegTaskConfig.COMPLEX_MODE, new Object[] { config, dic });
 
 		} catch (JcsegException e1) {
 			e1.printStackTrace();
@@ -39,7 +39,10 @@ public class CopyOfAnaylyzerTools {
 			seg.reset(new StringReader(str));
 			IWord word = null;
 			while ((word = seg.next()) != null) {
-				list.add(word.getValue());
+				String spwords = word.getValue();
+				String result = spwords.replaceAll("[^(\\u4e00-\\u9fa5)]", "");
+				if (result.length() > 1)
+					list.add(result);
 			}
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -67,6 +70,7 @@ public class CopyOfAnaylyzerTools {
 				// StringReader reader = new StringReader(str);
 				List<String> list = anaylyzerTools.anaylyzerWords(str, configg,
 						dicc);
+
 				String splitstr = list.toString().replace("[", "")
 						.replace("]", "").replaceAll(" ", "")
 						.replaceAll(",", " ").replaceAll("[(]", "")

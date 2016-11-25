@@ -33,7 +33,7 @@ object LDAHotTopic {
     import sqlContext.implicits._
     val inputpath = "C:/Users/dell/Desktop/data/"
     val outputpath = "C:/Users/dell/Desktop/LDAresult/"
-    val src = spark.textFile(inputpath + "kmeans2")
+    val src = spark.textFile(inputpath + "kmeans_cn")
     val srcDS = src.map {
       line =>
         var data = line.split(",")
@@ -63,9 +63,9 @@ object LDAHotTopic {
     LDAWithvec.cache()
     //LDA算法
     //LDA模型训练
-    val topicnum = 5
+    val topicnum = 13
     val maxiter = 100
-    val Optimizermethods = "online"
+    val Optimizermethods = "em"
     //EM消耗大量内存 Online更快
     val LDAinput = LDAWithvec.select("index", "words", "LDAvec")
     val lda = new LDA()
@@ -137,18 +137,18 @@ object LDAHotTopic {
     //    lpouput.close
     //主题数目K对logLikelihood值的影响
     //问题：可能由于目前数据量很小 k值在3-20间logll值一直递减
-    val numKlogll = new PrintWriter(outputpath + "numKlogll")
-    for (i <- Array(3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20)) {
-      val testlda = new LDA()
-        .setK(i)
-        .setMaxIter(100)
-        .setOptimizer("online")
-        .setFeaturesCol("LDAvec")
-      val testmodel = testlda.fit(LDAinput)
-      val testll = testmodel.logLikelihood(LDAinput)
-      numKlogll.print(testll + "\n")
-    }
-    numKlogll.close
+    //    val numKlogll = new PrintWriter(outputpath + "numKlogll")
+    //    for (i <- Array(3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20)) {
+    //      val testlda = new LDA()
+    //        .setK(i)
+    //        .setMaxIter(100)
+    //        .setOptimizer("online")
+    //        .setFeaturesCol("LDAvec")
+    //      val testmodel = testlda.fit(LDAinput)
+    //      val testll = testmodel.logLikelihood(LDAinput)
+    //      numKlogll.print(testll + "\n")
+    //    }
+    //    numKlogll.close
     //EM 方法，分析DocConcentration的影响，算法默认值是(50/k)+1
     //    val DocConcentrationloglp = new PrintWriter(outputpath + "DocConcentration")
     //    for (i <- Array(1.2, 3, 5, 7, 9, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20)) {

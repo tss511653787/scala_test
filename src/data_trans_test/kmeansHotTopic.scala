@@ -45,7 +45,7 @@ object kmeansFindPaperHotTopic {
     import sqlContext.implicits._
     //读取数据
     val inputpath = "C:/Users/dell/Desktop/data/"
-    val src = spark.textFile(inputpath + "kmeans2")
+    val src = spark.textFile(inputpath + "kmeans_cn")
     val srcDS = src.map {
       line =>
         var data = line.split(",")
@@ -74,7 +74,7 @@ object kmeansFindPaperHotTopic {
 
     //计算每个词在文档中的词频
     val hashingTF = new HashingTF()
-      .setNumFeatures(4000)
+      .setNumFeatures(10000)
       .setInputCol("words")
       .setOutputCol("hashWithTf")
     val featurizedData = hashingTF.transform(wordsData)
@@ -115,8 +115,8 @@ object kmeansFindPaperHotTopic {
 
     //k-means
     //模型参数
-    val Knumber = 10
-    val MaxIter = 30
+    val Knumber = 13
+    val MaxIter = 100
     val seednum = 1L
     val kmeans = new KMeans()
       .setK(Knumber)
