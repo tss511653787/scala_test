@@ -234,9 +234,22 @@ object LDAHotTopic {
             val maxnum = hashnumarr(findmax)
             arrbuf += wordarr(maxnum)
           }
-          arrbuf
+          val arr = arrbuf.toArray
+          arr
       }
-      HotWords.repartition(1).saveAsTextFile(outputpath + s"Cluster$k Hotwords")
+      //保存第K个聚类结果每条文档热词
+      HotWords.cache()
+      val Savehot = new PrintWriter(outputpath + s"Hotwords$k")
+      val Collhot = HotWords.collect()
+      var p = 1
+      Collhot.foreach { line =>
+        Savehot.print(p + " ")
+        for (str <- line) Savehot.print(str + " ")
+        Savehot.println
+        p = p + 1
+      }
+      Savehot.close
+
       //以后完善 可以利用wordVec2 模型对提取到的关键词进行语意扩展
       //WordVec2
       //利用wordVec2 模型对提取到的关键词进行语意扩展
@@ -251,20 +264,31 @@ object LDAHotTopic {
       val wordvec = new Word2Vec()
       wordvec.setMinCount(minfrewords)
       val wordvec2model = wordvec.fit(wordvec2word)
-      val similarwords = HotWords.map {
-        arrbuf =>
-          val simarrbuf = new ArrayBuffer[String]
-          for (i <- 0 to arrbuf.length - 1) {
-            var temparr = wordvec2model.findSynonyms(arrbuf(i), 3)
-            for (i <- 0 to 2) {
-              val str = temparr(i)._1
-              simarrbuf += str
-            }
-            simarrbuf += "|"
+
+      //保存第K个聚类结果每条文档热词+扩展词语结果
+      //格式：
+      //No words1:sim1,sim2,sim3 words2:sim1,sim2,sim3
+      HotWords.cache()
+      val savehot = new PrintWriter(outputpath + s"HotwordsWithSim$k")
+      val collhot = HotWords.collect()
+      var i = 1
+      collhot.foreach { line =>
+        val linenum = collhot.length
+        savehot.print(i + " ")
+        for (str <- line) {
+          savehot.print(str + ":")
+          //利用word2vec模型找3个近义词
+          var temparr = wordvec2model.findSynonyms(str, 3)
+          for (k <- 0 to 2) {
+            savehot.print(temparr(k)._1)
+            if (k != 2) savehot.print(",")
           }
-          simarrbuf
+          savehot.print(" ")
+        }
+        savehot.println
+        i = i + 1
       }
-      similarwords.repartition(1).saveAsTextFile(outputpath + s"similarwords$k")
+      savehot.close
 
     }
 

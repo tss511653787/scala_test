@@ -117,11 +117,10 @@ object kmeansFindPaperHotTopic {
     //模型参数
     val Knumber = 13
     val MaxIter = 100
-    val seednum = 1L
     val kmeans = new KMeans()
       .setK(Knumber)
-      .setSeed(seednum)
       .setMaxIter(MaxIter)
+
     //使用计算好的tf-idf值作为输入
     //.setFeaturesCol("idfnum")
     //.setPredictionCol("predictions")
@@ -329,26 +328,47 @@ object kmeansFindPaperHotTopic {
                 }
               }
             }
-            arrbuf
+            val arr = arrbuf.toArray
+            arr
         }
         //保存第K个聚类结果每条文档热词
-        HotWords.repartition(1).saveAsTextFile(newpath + s"HotWordCluster$k")
-        //利用wordVec2 模型对提取到的关键词进行语意扩展
-        //wordvec2arrbu存贮对单个单词的语意扩展词组
-        val similarwords = HotWords.map {
-          arrbuf =>
-            val simarrbuf = new ArrayBuffer[String]
-            for (i <- 0 to arrbuf.length - 1) {
-              var temparr = wordvec2model.findSynonyms(arrbuf(i), 3)
-              for (i <- 0 to 2) {
-                val str = temparr(i)._1
-                simarrbuf += str
-              }
-              simarrbuf += "|"
-            }
-            simarrbuf
+        HotWords.cache()
+        val Savehot = new PrintWriter(newpath + s"Hotwords$k")
+        val Collhot = HotWords.collect()
+        var i = 1
+        Collhot.foreach { line =>
+          val linenum = Collhot.length
+          Savehot.print(i + " ")
+          for (str <- line) Savehot.print(str + " ")
+          Savehot.println
+          i = i + 1
         }
-        similarwords.repartition(1).saveAsTextFile(newpath + s"similarwords$k")
+        Savehot.close
+
+        //利用wordVec2 模型对提取到的关键词进行语意扩展
+        //保存第K个聚类结果每条文档热词+扩展词语结果
+        //格式：
+        //No words1:sim1,sim2,sim3 words2:sim1,sim2,sim3
+        val savehot = new PrintWriter(newpath + s"HotwordsWithSim$k")
+        val collhot = HotWords.collect()
+        var j = 1
+        collhot.foreach { line =>
+          val linenum = collhot.length
+          savehot.print(j + " ")
+          for (str <- line) {
+            savehot.print(str + ":")
+            //利用word2vec模型找3个近义词
+            var temparr = wordvec2model.findSynonyms(str, 3)
+            for (k <- 0 to 2) {
+              savehot.print(temparr(k)._1)
+              if (k != 2) savehot.print(",")
+            }
+            savehot.print(" ")
+          }
+          savehot.println
+          j = j + 1
+        }
+        savehot.close
 
       } else {
         //该类簇中只有一条文本
@@ -367,6 +387,15 @@ object kmeansFindPaperHotTopic {
           case Row(words: WrappedArray[String], prediction: Int, features: mllibVector, wordsFrequency: Vector) =>
             wordsFrequency
         }
+        val wordvec2input = renameRDD.rdd.map {
+          case Row(words: WrappedArray[String], prediction: Int, features: mllibVector) =>
+            words.toSeq
+        }
+        val minfrewords = 1
+        val wordvec = new mlibWord2Vec()
+        wordvec.setMinCount(minfrewords)
+        //训练过程
+        val wordvec2model = wordvec.fit(wordvec2input)
         val Hotwords = wordsFreArr.map {
           case mlSparseVector(size, indices, values) =>
             var hashnumarr = indices
@@ -378,14 +407,48 @@ object kmeansFindPaperHotTopic {
               val maxhashnum = hashnumarr(findmax)
               arrbuf += wordarr(maxhashnum)
             }
-            arrbuf
+            val arr = arrbuf.toArray
+            arr
 
         }
-        Hotwords.repartition(1).saveAsTextFile(newpath + s"HotWordCluster$k")
+        //保存第K个聚类结果每条文档热词
+        Hotwords.cache()
+        val savehot = new PrintWriter(newpath + s"Hotwords$k")
+        val collhot = Hotwords.collect()
+        var i = 1
+        collhot.foreach { line =>
+          val linenum = collhot.length
+          savehot.print(i + " ")
+          for (str <- line) savehot.print(str + " ")
+          savehot.println
+          i = i + 1
+        }
+        savehot.close
+        //保存热词+扩展词语
+        val simsavehot = new PrintWriter(newpath + s"HotwordsWithSim$k")
+        val simcollhot = Hotwords.collect()
+        var j = 1
+        collhot.foreach { line =>
+          val linenum = simcollhot.length
+          simsavehot.print(j + " ")
+          for (str <- line) {
+            simsavehot.print(str + ":")
+            //利用word2vec模型找3个近义词
+            var temparr = wordvec2model.findSynonyms(str, 3)
+            for (k <- 0 to 2) {
+              simsavehot.print(temparr(k)._1)
+              if (k != 2) simsavehot.print(",")
+            }
+            simsavehot.print(" ")
+          }
+          simsavehot.println
+          j = j + 1
+        }
+        simsavehot.close
       }
-    }
+    } //for (k,v)
 
-  }
+  } //main
 }
 
 case class RawDataRecord(index: Int, text: String, time: String, recall: Int)
