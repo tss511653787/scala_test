@@ -40,6 +40,7 @@ public class CopyOfAnaylyzerTools {
 			IWord word = null;
 			while ((word = seg.next()) != null) {
 				String spwords = word.getValue();
+				//只过滤出了中文 字母要不要？
 				String result = spwords.replaceAll("[^(\\u4e00-\\u9fa5)]", "");
 				if (result.length() > 1)
 					list.add(result);

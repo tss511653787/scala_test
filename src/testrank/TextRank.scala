@@ -1,3 +1,4 @@
+package testrank
 import scala.collection.mutable.ListBuffer
 
 /**

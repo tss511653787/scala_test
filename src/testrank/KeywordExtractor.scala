@@ -1,3 +1,4 @@
+package testrank
 import org.graphstream.graph.{ Edge, Node }
 import org.graphstream.graph.implementations.SingleGraph
 

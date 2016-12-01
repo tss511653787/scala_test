@@ -13,6 +13,7 @@ import java.io.PrintWriter
 import java.util.ArrayList
 import scala.collection.mutable.ArrayBuffer
 
+
 object Copy_testdata {
   //屏蔽日志
   Logger.getLogger("org.apache.spark").setLevel(Level.WARN)

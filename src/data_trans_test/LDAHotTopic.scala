@@ -19,6 +19,7 @@ import scala.collection.mutable.ArrayBuffer
 import java.io.PrintWriter
 import org.apache.spark.ml.linalg.SparseVector
 import org.apache.spark.mllib.feature.Word2Vec
+import testrank.KeywordExtractor
 
 object LDAHotTopic {
   //屏蔽日志
@@ -237,6 +238,23 @@ object LDAHotTopic {
           val arr = arrbuf.toArray
           arr
       }
+      //textrank 算法对每条文档进行关键词提取
+      val rankvec = newDF.rdd.map {
+        case Row(index: Int, words: WrappedArray[String], ldavec: Vector, topicDistribution: Vector, maxprobability: Double, prediction: Int, tfIdfvec: Vector) =>
+          words.toList
+      }
+      val rankHot = rankvec.map { list =>
+        //url:图名称
+        //5滑动窗口大小
+        //10关键词个数
+        //100迭代次数
+        //0.85阻尼系数
+        val keyword = KeywordExtractor.keywordExtractor("url", 5, list, 3, 100, 0.85f)
+        (keyword(0)._1, keyword(1)._1, keyword(2)._1)
+      }
+      //保存textrank的结果
+      rankHot.repartition(1).saveAsTextFile(outputpath + s"rankHot$k")
+
       //保存第K个聚类结果每条文档热词
       HotWords.cache()
       val Savehot = new PrintWriter(outputpath + s"Hotwords$k")
@@ -260,6 +278,7 @@ object LDAHotTopic {
       }
       //设置最小词频
       //目前需要所有词所以先设置为1
+      //词库是一个聚类中的所有词语
       val minfrewords = 1
       val wordvec = new Word2Vec()
       wordvec.setMinCount(minfrewords)
