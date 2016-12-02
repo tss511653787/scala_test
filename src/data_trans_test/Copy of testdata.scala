@@ -25,7 +25,7 @@ object Copy_testdata {
     val sc = new SparkContext(conf)
     val sqlContext = new org.apache.spark.sql.SQLContext(sc)
     import sqlContext.implicits._
-    val path = "C:/Users/dell/Desktop/data/Cardata5000.csv"
+    val path = "C:/Users/dell/Desktop/data/Cardata50.csv"
     //path:hdfs://tss.hadoop2-1:8020/user/root/dataSet/data/test2_bsk.csv C:/Users/dell/Desktop/data/Cardata250.csv
     //读取文件
     val text = sc.textFile(path)

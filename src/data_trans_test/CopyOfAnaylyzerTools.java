@@ -40,7 +40,7 @@ public class CopyOfAnaylyzerTools {
 			IWord word = null;
 			while ((word = seg.next()) != null) {
 				String spwords = word.getValue();
-				//只过滤出了中文 字母要不要？
+				// 只过滤出了中文 字母要不要？
 				String result = spwords.replaceAll("[^(\\u4e00-\\u9fa5)]", "");
 				if (result.length() > 1)
 					list.add(result);
@@ -76,6 +76,7 @@ public class CopyOfAnaylyzerTools {
 						.replace("]", "").replaceAll(" ", "")
 						.replaceAll(",", " ").replaceAll("[(]", "")
 						.replaceAll("[)]", "");
+				// 文件落地 文件名是对应的索引号
 				FileWriter fr = new FileWriter(resPath + i + ".txt");
 				fr.write(splitstr);
 				System.out.println();

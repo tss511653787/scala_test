@@ -98,7 +98,7 @@ object LDAHotTopic {
     }
     //词语-主题矩阵 列代表每个词语在每个主题上的概率分布 行书是每个不重复词语
     val topicsMat = ldamodel.topicsMatrix
-    println("词语-主题矩阵：")
+    println("文档-主题矩阵：")
     println(topicsMat.toString)
 
     //整理转换
@@ -200,8 +200,17 @@ object LDAHotTopic {
       //按着文档对出题的概率进行降序排列
       val value = v.toSeq.sortWith(_._5 > _._5)
       //提取概率最高的前10个文档做为输入
-      val vec = value.take(10)
+      val vec = value.take(15)
       val vecDF = vec.toDF()
+      val allvecDF = value.toDF()
+      //聚类中所有文档的df
+      val reallvecDF = allvecDF.withColumnRenamed("_1", "index")
+        .withColumnRenamed("_2", "words")
+        .withColumnRenamed("_3", "LDAvec")
+        .withColumnRenamed("_4", "topicDistribution")
+        .withColumnRenamed("_5", "maxprobability")
+        .withColumnRenamed("_6", "prediction")
+      //聚类中里中心最近前10文档的DF
       val renamevecDF = vecDF.withColumnRenamed("_1", "index")
         .withColumnRenamed("_2", "words")
         .withColumnRenamed("_3", "LDAvec")
@@ -238,22 +247,13 @@ object LDAHotTopic {
           val arr = arrbuf.toArray
           arr
       }
+
+      //TextRank
       //textrank 算法对每条文档进行关键词提取
-      val rankvec = newDF.rdd.map {
-        case Row(index: Int, words: WrappedArray[String], ldavec: Vector, topicDistribution: Vector, maxprobability: Double, prediction: Int, tfIdfvec: Vector) =>
+      val rankvec = renamevecDF.rdd.map {
+        case Row(index: Int, words: WrappedArray[String], ldavec: Vector, topicDistribution: Vector, maxprobability: Double, prediction: Int) =>
           words.toList
       }
-      val rankHot = rankvec.map { list =>
-        //url:图名称
-        //5滑动窗口大小
-        //10关键词个数
-        //100迭代次数
-        //0.85阻尼系数
-        val keyword = KeywordExtractor.keywordExtractor("url", 5, list, 3, 100, 0.85f)
-        (keyword(0)._1, keyword(1)._1, keyword(2)._1)
-      }
-      //保存textrank的结果
-      rankHot.repartition(1).saveAsTextFile(outputpath + s"rankHot$k")
 
       //保存第K个聚类结果每条文档热词
       HotWords.cache()
@@ -272,8 +272,8 @@ object LDAHotTopic {
       //WordVec2
       //利用wordVec2 模型对提取到的关键词进行语意扩展
       //wordvec2arrbu存贮对单个单词的语意扩展词组
-      val wordvec2word = newDF.rdd.map {
-        case Row(index: Int, words: WrappedArray[String], ldavec: Vector, topicDistribution: Vector, maxprobability: Double, prediction: Int, tfIdfvec: Vector) =>
+      val wordvec2word = reallvecDF.rdd.map {
+        case Row(index: Int, words: WrappedArray[String], ldavec: Vector, topicDistribution: Vector, maxprobability: Double, prediction: Int) =>
           words.toSeq
       }
       //设置最小词频
@@ -283,6 +283,41 @@ object LDAHotTopic {
       val wordvec = new Word2Vec()
       wordvec.setMinCount(minfrewords)
       val wordvec2model = wordvec.fit(wordvec2word)
+      //热词和扩展次的RDD
+      val hotWithsim = HotWords.map {
+        array =>
+          var saveall = new ArrayBuffer[String]
+          var num = 0
+          for (words <- array) {
+            var temparr = wordvec2model.findSynonyms(words, 2)
+            saveall += words
+            //            saveall += temparr(0)._1
+            //            saveall += temparr(1)._1
+          }
+          saveall.toArray
+      }
+      val allhotwords = hotWithsim.collect
+      val temp = new ArrayBuffer[String]
+      for (i <- 0 to allhotwords.length - 1) {
+        temp ++= allhotwords(i)
+      }
+      val tem = temp.toList
+      //保存热词结果
+      val clusterhotwords = new PrintWriter(outputpath + s"clusterhotword$k")
+      val keyword = KeywordExtractor.keywordExtractor("url", 5, tem, 10, 100, 0.85f)
+      clusterhotwords.println(s"聚类:$k" + "热词")
+      keyword.foreach(clusterhotwords.println)
+      clusterhotwords.close()
+
+      //      val rankHot = hotWithsim.map { list =>
+      //        //url:图名称
+      //        //5滑动窗口大小
+      //        //10关键词个数
+      //        //100迭代次数
+      //        //0.85阻尼系数
+      //        val keyword = KeywordExtractor.keywordExtractor("url", 5, list, 3, 100, 0.85f)
+      //        (keyword(0)._1, keyword(1)._1, keyword(2)._1)
+      //      }
 
       //保存第K个聚类结果每条文档热词+扩展词语结果
       //格式：
@@ -297,8 +332,8 @@ object LDAHotTopic {
         for (str <- line) {
           savehot.print(str + ":")
           //利用word2vec模型找3个近义词
-          var temparr = wordvec2model.findSynonyms(str, 3)
-          for (k <- 0 to 2) {
+          var temparr = wordvec2model.findSynonyms(str, 2)
+          for (k <- 0 to 1) {
             savehot.print(temparr(k)._1)
             if (k != 2) savehot.print(",")
           }
