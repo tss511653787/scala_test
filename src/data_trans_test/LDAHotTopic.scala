@@ -34,7 +34,7 @@ object LDAHotTopic {
     import sqlContext.implicits._
     val inputpath = "C:/Users/dell/Desktop/data/"
     val outputpath = "C:/Users/dell/Desktop/LDAresult/"
-    val src = spark.textFile(inputpath + "kmeans_cn")
+    val src = spark.textFile(inputpath + "kmeans_cn1")
     val srcDS = src.map {
       line =>
         var data = line.split(",")
@@ -112,11 +112,11 @@ object LDAHotTopic {
     //模型的评价指标：logLikelihood，logPerplexity
     //（1）根据训练集的模型分布计算的log likelihood(对数似然率)，越大越好
 
-    val ll = ldamodel.logLikelihood(LDAinput)
-    println("主题数" + topicnum + "的对数似然率:" + ll)
+    //    val ll = ldamodel.logLikelihood(LDAinput)
+    //    println("主题数" + topicnum + "的对数似然率:" + ll)
     //（2）Perplexity(复杂度)评估，越小越好
-    val lp = ldamodel.logPerplexity(LDAinput)
-    println("主题数" + topicnum + "的复杂度上界:" + lp)
+    //    val lp = ldamodel.logPerplexity(LDAinput)
+    //    println("主题数" + topicnum + "的复杂度上界:" + lp)
 
     //对参数进行调试
     //对迭代次数进行调试
@@ -200,7 +200,10 @@ object LDAHotTopic {
       //按着文档对出题的概率进行降序排列
       val value = v.toSeq.sortWith(_._5 > _._5)
       //提取概率最高的前10个文档做为输入
-      val vec = value.take(15)
+      //取得和聚类中心最近文档的数量takenum
+      println(s"聚类$k" + "的文档条数：" + value.length)
+      val takenum = 50
+      val vec = value.take(takenum)
       val vecDF = vec.toDF()
       val allvecDF = value.toDF()
       //聚类中所有文档的df
@@ -254,6 +257,18 @@ object LDAHotTopic {
         case Row(index: Int, words: WrappedArray[String], ldavec: Vector, topicDistribution: Vector, maxprobability: Double, prediction: Int) =>
           words.toList
       }
+      //对整个聚类提取进行rank
+      val arm = new ArrayBuffer[String]
+      val collwords = rankvec.collect
+      for (i <- 0 to collwords.length - 1) {
+        arm ++= collwords(i)
+      }
+      val armlist = arm.toList
+      val clusterRank = new PrintWriter(outputpath + s"clusterRank$k")
+      val Keyword = KeywordExtractor.keywordExtractor("Url", 5, armlist, 10, 100, 0.85f)
+      clusterRank.println(s"聚类:$k" + "热词")
+      Keyword.foreach(clusterRank.println)
+      clusterRank.close()
 
       //保存第K个聚类结果每条文档热词
       HotWords.cache()
@@ -291,6 +306,7 @@ object LDAHotTopic {
           for (words <- array) {
             var temparr = wordvec2model.findSynonyms(words, 2)
             saveall += words
+            //暂时不实用word2vec进行近义词搜索
             //            saveall += temparr(0)._1
             //            saveall += temparr(1)._1
           }
