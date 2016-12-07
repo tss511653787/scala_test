@@ -13,7 +13,6 @@ import java.io.PrintWriter
 import java.util.ArrayList
 import scala.collection.mutable.ArrayBuffer
 
-
 object Copy_testdata {
   //屏蔽日志
   Logger.getLogger("org.apache.spark").setLevel(Level.WARN)
@@ -25,7 +24,7 @@ object Copy_testdata {
     val sc = new SparkContext(conf)
     val sqlContext = new org.apache.spark.sql.SQLContext(sc)
     import sqlContext.implicits._
-    val path = "C:/Users/dell/Desktop/data/Cardata5000.csv"
+    val path = "C:/Users/dell/Desktop/data/rawewcall.csv"
     //path:hdfs://tss.hadoop2-1:8020/user/root/dataSet/data/test2_bsk.csv C:/Users/dell/Desktop/data/Cardata250.csv
     //读取文件
     val text = sc.textFile(path)
@@ -34,7 +33,7 @@ object Copy_testdata {
     val data = text.map {
       rawline =>
         val splitdata = rawline.split(",")
-        CopyDataRecord(splitdata(0), splitdata(1), splitdata(2), splitdata(3), splitdata(4), splitdata(5).toInt, splitdata(6))
+        CopyDataRecord(splitdata(1), splitdata(2), splitdata(3), splitdata(4), splitdata(5), splitdata(6).toInt, splitdata(7))
     }
     val dataDF = data.toDF
     dataDF.cache
@@ -58,6 +57,10 @@ object Copy_testdata {
     caseallDF.cache
     val recaseDF = caseallDF.select(caseallDF("_1").as("index"), caseallDF("_2").as("title"), caseallDF("_3").as("content"), caseallDF("_4").as("text"), caseallDF("_5").as("name"), caseallDF("_6").as("time"), caseallDF("_7").as("recall"), caseallDF("_8").as("net"))
     recaseDF.cache
+    //对数据进行切分和简单热度统计
+    val highrecall = recaseDF.where("recall>=100")
+    println("回帖数量超过100的帖子有:" + highrecall.count())
+    highrecall.rdd.repartition(1).saveAsTextFile(newpath + "highrecallRDD")
     val arrtext = casetext.collect
     val savechar = new PrintWriter(newpath + "savechar")
     arrtext.foreach { line => savechar.println(line) }

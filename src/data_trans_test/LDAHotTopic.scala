@@ -34,7 +34,7 @@ object LDAHotTopic {
     import sqlContext.implicits._
     val inputpath = "C:/Users/dell/Desktop/data/"
     val outputpath = "C:/Users/dell/Desktop/LDAresult/"
-    val src = spark.textFile(inputpath + "kmeans_cn1")
+    val src = spark.textFile(inputpath + "kmeans_cn_nostopwords")
     val srcDS = src.map {
       line =>
         var data = line.split(",")

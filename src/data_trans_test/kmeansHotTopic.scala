@@ -30,6 +30,7 @@ import org.apache.log4j.Logger
 import org.apache.spark.ml.feature.CountVectorizer
 import org.apache.spark.ml.feature.Word2Vec
 import org.apache.spark.mllib.feature.{ Word2Vec => mlibWord2Vec }
+import testrank.KeywordExtractor
 
 object kmeansFindPaperHotTopic {
   //屏蔽日志
@@ -45,7 +46,7 @@ object kmeansFindPaperHotTopic {
     import sqlContext.implicits._
     //读取数据
     val inputpath = "C:/Users/dell/Desktop/data/"
-    val src = spark.textFile(inputpath + "kmeans_cn")
+    val src = spark.textFile(inputpath + "kmeans_cn_nostopwords")
     val srcDS = src.map {
       line =>
         var data = line.split(",")
@@ -116,7 +117,7 @@ object kmeansFindPaperHotTopic {
     //k-means
     //模型参数
     val Knumber = 13
-    val MaxIter = 100
+    val MaxIter = 150
     val kmeans = new KMeans()
       .setK(Knumber)
       .setMaxIter(MaxIter)
@@ -344,6 +345,18 @@ object kmeansFindPaperHotTopic {
           i = i + 1
         }
         Savehot.close
+        //textRank
+        val tempp = new ArrayBuffer[String]
+        for (i <- 0 to Collhot.length - 1) {
+          tempp ++= Collhot(i)
+        }
+        val temm = tempp.toList
+        //保存热词结果
+        val clusterhotwords = new PrintWriter(newpath + s"clusterhotword$k")
+        val keyword = KeywordExtractor.keywordExtractor("url", 5, temm, 10, 100, 0.85f)
+        clusterhotwords.println(s"聚类:$k" + "热词")
+        keyword.foreach(clusterhotwords.println)
+        clusterhotwords.close()
 
         //利用wordVec2 模型对提取到的关键词进行语意扩展
         //保存第K个聚类结果每条文档热词+扩展词语结果
@@ -424,6 +437,19 @@ object kmeansFindPaperHotTopic {
           i = i + 1
         }
         savehot.close
+        //textRank
+        val temp = new ArrayBuffer[String]
+        for (i <- 0 to collhot.length - 1) {
+          temp ++= collhot(i)
+        }
+        val tem = temp.toList
+        //保存热词结果
+        val clusterhotwords = new PrintWriter(newpath + s"clusterhotword$k")
+        val keyword = KeywordExtractor.keywordExtractor("url", 5, tem, 10, 100, 0.85f)
+        clusterhotwords.println(s"聚类:$k" + "热词")
+        keyword.foreach(clusterhotwords.println)
+        clusterhotwords.close()
+
         //保存热词+扩展词语
         val simsavehot = new PrintWriter(newpath + s"HotwordsWithSim$k")
         val simcollhot = Hotwords.collect()
