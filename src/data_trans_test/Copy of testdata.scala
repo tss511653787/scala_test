@@ -33,7 +33,7 @@ object Copy_testdata {
     val data = text.map {
       rawline =>
         val splitdata = rawline.split(",")
-        CopyDataRecord(splitdata(1), splitdata(2), splitdata(3), splitdata(4), splitdata(5), splitdata(6).toInt, splitdata(7))
+        CopyDataRecord(splitdata(0), splitdata(1), splitdata(2), splitdata(3), splitdata(4), splitdata(5).toInt, splitdata(6))
     }
     val dataDF = data.toDF
     dataDF.cache

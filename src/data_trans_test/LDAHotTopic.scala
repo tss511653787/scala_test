@@ -34,7 +34,7 @@ object LDAHotTopic {
     import sqlContext.implicits._
     val inputpath = "C:/Users/dell/Desktop/data/"
     val outputpath = "C:/Users/dell/Desktop/LDAresult/"
-    val src = spark.textFile(inputpath + "kmeans_cn_nostopwords")
+    val src = spark.textFile(inputpath + "kmeans_noST_noLC")
     val srcDS = src.map {
       line =>
         var data = line.split(",")
@@ -65,7 +65,7 @@ object LDAHotTopic {
     //LDA算法
     //LDA模型训练
     val topicnum = 13
-    val maxiter = 100
+    val maxiter = 200
     val Optimizermethods = "em"
     //EM消耗大量内存 Online更快
     val LDAinput = LDAWithvec.select("index", "words", "LDAvec")
