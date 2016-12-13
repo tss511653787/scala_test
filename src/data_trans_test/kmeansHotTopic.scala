@@ -31,6 +31,7 @@ import org.apache.spark.ml.feature.CountVectorizer
 import org.apache.spark.ml.feature.Word2Vec
 import org.apache.spark.mllib.feature.{ Word2Vec => mlibWord2Vec }
 import testrank.KeywordExtractor
+import org.apache.spark.ml.clustering.BisectingKMeans
 
 object kmeansFindPaperHotTopic {
   //屏蔽日志
@@ -46,7 +47,7 @@ object kmeansFindPaperHotTopic {
     import sqlContext.implicits._
     //读取数据
     val inputpath = "C:/Users/dell/Desktop/data/"
-    val src = spark.textFile(inputpath + "kmeans_cn_nostopwords")
+    val src = spark.textFile(inputpath + "kmeans_noST_noLC")
     val srcDS = src.map {
       line =>
         var data = line.split(",")
@@ -117,10 +118,22 @@ object kmeansFindPaperHotTopic {
     //k-means
     //模型参数
     val Knumber = 13
-    val MaxIter = 150
+    val MaxIter = 100
     val kmeans = new KMeans()
       .setK(Knumber)
       .setMaxIter(MaxIter)
+    //Bisecting Kmeans
+    val BiKmunber = 13
+    val BiMaxIter = 100
+    val bkm = new BisectingKMeans()
+      .setK(BiKmunber)
+      .setMaxIter(BiMaxIter)
+    val Bikmeansmodel = bkm.fit(rescaledData)
+    val BikmeansmodelCost = Bikmeansmodel.computeCost(rescaledData)
+    println("BiKmeans WSSSE:" + BikmeansmodelCost)
+    val Bikmeanspre = Bikmeansmodel.transform(rescaledData)
+    println("BskDF转化结果:")
+    Bikmeanspre.show()
 
     //使用计算好的tf-idf值作为输入
     //.setFeaturesCol("idfnum")
@@ -129,7 +142,7 @@ object kmeansFindPaperHotTopic {
     val kmeansModel = kmeans.fit(rescaledData)
     val clusterCenters = kmeansModel.clusterCenters;
     //聚类中心
-    println("聚类中心:")
+    println("k-means聚类中心:")
     clusterCenters.foreach(println)
     val linenum = clusterCenters.length
     val clusterCenters_output = new PrintWriter(newpath + "clusterCenters_output")
@@ -147,15 +160,26 @@ object kmeansFindPaperHotTopic {
     ks.foreach { k =>
       val Kmeanns = new KMeans()
         .setK(k)
-        .setSeed(1L)
-        .setMaxIter(30) //最大迭代次数
+        .setMaxIter(100) //最大迭代次数
       val kmeansModel = Kmeanns.fit(rescaledData)
       val ssd = kmeansModel.computeCost(rescaledData)
       findNumK.println("sum of squared distances of points to their nearest center when k=" + k + " -> " + ssd)
-      savefindK.println(ssd) //3-20
+      savefindK.println(k + "," + ssd) //3-20
     }
     findNumK.close
     savefindK.close
+    //find Bikmeans K
+    //    val BisavefindK = new PrintWriter(newpath + "BisavefindK")
+    //    val biks: Array[Int] = Array(3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20)
+    //    biks.foreach { k =>
+    //      val BiKmeanns = new BisectingKMeans()
+    //        .setK(k)
+    //        .setMaxIter(100) //最大迭代次数
+    //      val BikmeansModel = BiKmeanns.fit(rescaledData)
+    //      val Bisse = BikmeansModel.computeCost(rescaledData)
+    //      BisavefindK.println(Bisse) //3-20
+    //    }
+    //    BisavefindK.close
 
     //保存k-means结果rdd
     val predictioned = kmeansModel.summary.predictions
@@ -176,7 +200,7 @@ object kmeansFindPaperHotTopic {
       .repartition(1)
       .saveAsTextFile(newpath + "kmeans-summary")
 
-    val datapre = predictioned
+    val datapre = Bikmeanspre
       .select($"index", $"words", $"features", $"prediction", $"text")
       .rdd
 
@@ -208,7 +232,7 @@ object kmeansFindPaperHotTopic {
     //使用mllib包中的TF-IDF方法对每个聚类族中进行热门词汇提取
     for ((k, v) <- clusterAssignments.toSeq.sortBy(_._1)) {
       val value = v.toSeq.sortBy(_._3)
-      val vec = value.take(10).map {
+      val vec = value.take(20).map {
         case (index, prediction, dist, words, features, text) =>
           (index, words, dist, prediction, text)
           //重新打标签
@@ -317,7 +341,7 @@ object kmeansFindPaperHotTopic {
             var hashnumarr = indices
             var tfidfvalues = values
             val arrbuf = new ArrayBuffer[String]
-            for (i <- 1 to 3) {
+            for (i <- 1 to 5) {
               //寻找每个向量中tf-idf最大的3个词语
               val findmax = tfidfvalues.indexOf(tfidfvalues.max)
               //找到最大值后置0
@@ -414,7 +438,7 @@ object kmeansFindPaperHotTopic {
             var hashnumarr = indices
             var tfidfvalues = values
             val arrbuf = new ArrayBuffer[String]
-            for (i <- 1 to 3) {
+            for (i <- 1 to 5) {
               val findmax = tfidfvalues.indexOf(tfidfvalues.max)
               tfidfvalues(findmax) = 0.0
               val maxhashnum = hashnumarr(findmax)

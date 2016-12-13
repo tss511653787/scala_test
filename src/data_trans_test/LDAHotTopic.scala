@@ -64,8 +64,8 @@ object LDAHotTopic {
     LDAWithvec.cache()
     //LDA算法
     //LDA模型训练
-    val topicnum = 13
-    val maxiter = 200
+    val topicnum = 10
+    val maxiter = 100
     val Optimizermethods = "em"
     //EM消耗大量内存 Online更快
     val LDAinput = LDAWithvec.select("index", "words", "LDAvec")
@@ -202,7 +202,7 @@ object LDAHotTopic {
       //提取概率最高的前10个文档做为输入
       //取得和聚类中心最近文档的数量takenum
       println(s"聚类$k" + "的文档条数：" + value.length)
-      val takenum = 50
+      val takenum = 15
       val vec = value.take(takenum)
       val vecDF = vec.toDF()
       val allvecDF = value.toDF()
