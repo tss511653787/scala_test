@@ -199,7 +199,7 @@ object kmeansFindPaperHotTopic {
       .rdd
       .repartition(1)
       .saveAsTextFile(newpath + "kmeans-summary")
-
+    //predictioned
     val datapre = Bikmeanspre
       .select($"index", $"words", $"features", $"prediction", $"text")
       .rdd
@@ -232,6 +232,8 @@ object kmeansFindPaperHotTopic {
     //使用mllib包中的TF-IDF方法对每个聚类族中进行热门词汇提取
     for ((k, v) <- clusterAssignments.toSeq.sortBy(_._1)) {
       val value = v.toSeq.sortBy(_._3)
+      val docnum = value.length
+      println(s"聚类$k" + "的文档条数:" + docnum)
       val vec = value.take(20).map {
         case (index, prediction, dist, words, features, text) =>
           (index, words, dist, prediction, text)
