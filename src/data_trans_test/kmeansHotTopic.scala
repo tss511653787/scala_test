@@ -32,6 +32,7 @@ import org.apache.spark.ml.feature.Word2Vec
 import org.apache.spark.mllib.feature.{ Word2Vec => mlibWord2Vec }
 import testrank.KeywordExtractor
 import org.apache.spark.ml.clustering.BisectingKMeans
+import org.joda.time.format.DateTimeParserBucket.SavedField
 
 object kmeansFindPaperHotTopic {
   //屏蔽日志
@@ -111,7 +112,8 @@ object kmeansFindPaperHotTopic {
     println("data features 矩阵方差:" + CarMatrixSummary.variance)
     //感觉是有离群点 应该进行归一化处理
     //结果写入文本文件
-    val Matrixoutput = new PrintWriter(newpath + "Matrixoutput")
+    SaveFile.makeDir(newpath + "Matrixout/")
+    val Matrixoutput = new PrintWriter(newpath + "Matrixout/" + "Matrixoutput")
     Matrixoutput.println("data features 矩阵平均值:" + CarMatrixSummary.mean + "\n" + "data features 矩阵方差:" + CarMatrixSummary.variance + "\n")
     Matrixoutput.close
 
@@ -145,7 +147,8 @@ object kmeansFindPaperHotTopic {
     println("k-means聚类中心:")
     clusterCenters.foreach(println)
     val linenum = clusterCenters.length
-    val clusterCenters_output = new PrintWriter(newpath + "clusterCenters_output")
+    SaveFile.makeDir(newpath + "cluterCenter/")
+    val clusterCenters_output = new PrintWriter(newpath + "cluterCenter/" + "clusterCenters_output")
     for (line <- 0 to linenum - 1) {
       clusterCenters_output.println(clusterCenters(line).toString)
     }
@@ -154,8 +157,9 @@ object kmeansFindPaperHotTopic {
     //误差计算
     println("with set sum of squared errors:" + WSSSE)
     //初步寻找最佳K值
-    val findNumK = new PrintWriter(newpath + "findNumK")
-    val savefindK = new PrintWriter(newpath + "savefindK")
+    SaveFile.makeDir(newpath + "Find/")
+    val findNumK = new PrintWriter(newpath + "Find/" + "findNumK")
+    val savefindK = new PrintWriter(newpath + "Find/" + "savefindK")
     val ks: Array[Int] = Array(3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20)
     ks.foreach { k =>
       val Kmeanns = new KMeans()
@@ -308,7 +312,8 @@ object kmeansFindPaperHotTopic {
         val tem = temp.toArray
         val distinctWords = tem.distinct
         //去重词语保存Hash值
-        val savedistinct = new PrintWriter(newpath + "savedistinct")
+        SaveFile.makeDir(newpath + "Savedistinct/")
+        val savedistinct = new PrintWriter(newpath + "Savedistinct/" + "savedistinct")
         distinctWords.foreach {
           words => savedistinct.print(words.hashCode() + " ")
         }
@@ -317,7 +322,8 @@ object kmeansFindPaperHotTopic {
         val HotWordsvec = wordsWithFeatureDFRdd.map {
           case (words, prediction, features) => features
         }
-        HotWordsvec.repartition(1).saveAsTextFile(newpath + s"HotWordsvec$k")
+        SaveFile.makeDir(newpath + "HotWordsvec/")
+        HotWordsvec.repartition(1).saveAsTextFile(newpath + "HotWordsvec/" + s"HotWordsvec$k")
         val wordvec2row = wordsWithFeatureDFRdd.toDF()
         val wordvec2re = wordvec2row
           .withColumnRenamed("_1", "words")
@@ -327,7 +333,8 @@ object kmeansFindPaperHotTopic {
           case Row(words: WrappedArray[String], prediction: Int, features: mllibVector) =>
             words.toSeq
         }
-        wordvec2input.repartition(1).saveAsTextFile(newpath + s"wordvecinput$k")
+        SaveFile.makeDir(newpath + "wordvecinput/")
+        wordvec2input.repartition(1).saveAsTextFile(newpath + "wordvecinput/" + s"wordvecinput$k")
         //设置最小词频
         //目前需要所有词所以先设置为1
         val minfrewords = 1
@@ -360,7 +367,8 @@ object kmeansFindPaperHotTopic {
         }
         //保存第K个聚类结果每条文档热词
         HotWords.cache()
-        val Savehot = new PrintWriter(newpath + s"Hotwords$k")
+        SaveFile.makeDir(newpath + "HotWords/")
+        val Savehot = new PrintWriter(newpath + "HotWords/" + s"Hotwords$k")
         val Collhot = HotWords.collect()
         var i = 1
         Collhot.foreach { line =>
@@ -378,7 +386,8 @@ object kmeansFindPaperHotTopic {
         }
         val temm = tempp.toList
         //保存热词结果
-        val clusterhotwords = new PrintWriter(newpath + s"clusterhotword$k")
+        SaveFile.makeDir(newpath + "clusterhotword/")
+        val clusterhotwords = new PrintWriter(newpath + "clusterhotword/" + s"clusterhotword$k")
         val keyword = KeywordExtractor.keywordExtractor("url", 5, temm, 10, 100, 0.85f)
         clusterhotwords.println(s"聚类:$k" + "热词")
         keyword.foreach(clusterhotwords.println)
@@ -388,7 +397,8 @@ object kmeansFindPaperHotTopic {
         //保存第K个聚类结果每条文档热词+扩展词语结果
         //格式：
         //No words1:sim1,sim2,sim3 words2:sim1,sim2,sim3
-        val savehot = new PrintWriter(newpath + s"HotwordsWithSim$k")
+        SaveFile.makeDir(newpath + "HotwordsWithSim/")
+        val savehot = new PrintWriter(newpath + "HotwordsWithSim/" + s"HotwordsWithSim$k")
         val collhot = HotWords.collect()
         var j = 1
         collhot.foreach { line =>
@@ -452,7 +462,8 @@ object kmeansFindPaperHotTopic {
         }
         //保存第K个聚类结果每条文档热词
         Hotwords.cache()
-        val savehot = new PrintWriter(newpath + s"Hotwords$k")
+        SaveFile.makeDir(newpath + "Hotwords/")
+        val savehot = new PrintWriter(newpath + "Hotwords/" + s"Hotwords$k")
         val collhot = Hotwords.collect()
         var i = 1
         collhot.foreach { line =>
@@ -470,14 +481,16 @@ object kmeansFindPaperHotTopic {
         }
         val tem = temp.toList
         //保存热词结果
-        val clusterhotwords = new PrintWriter(newpath + s"clusterhotword$k")
+        SaveFile.makeDir(newpath + "clusterhotword/")
+        val clusterhotwords = new PrintWriter(newpath + "clusterhotword/" + s"clusterhotword$k")
         val keyword = KeywordExtractor.keywordExtractor("url", 5, tem, 10, 100, 0.85f)
         clusterhotwords.println(s"聚类:$k" + "热词")
         keyword.foreach(clusterhotwords.println)
         clusterhotwords.close()
 
         //保存热词+扩展词语
-        val simsavehot = new PrintWriter(newpath + s"HotwordsWithSim$k")
+        SaveFile.makeDir(newpath + "HotwordsWithSim/")
+        val simsavehot = new PrintWriter(newpath + "HotwordsWithSim/" + s"HotwordsWithSim$k")
         val simcollhot = Hotwords.collect()
         var j = 1
         collhot.foreach { line =>

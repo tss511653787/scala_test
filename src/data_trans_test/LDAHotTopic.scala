@@ -112,59 +112,59 @@ object LDAHotTopic {
     //模型的评价指标：logLikelihood，logPerplexity
     //（1）根据训练集的模型分布计算的log likelihood(对数似然率)，越大越好
 
-//    val ll = ldamodel.logLikelihood(LDAinput)
-//    println("主题数" + topicnum + "的对数似然率:" + ll)
+    //    val ll = ldamodel.logLikelihood(LDAinput)
+    //    println("主题数" + topicnum + "的对数似然率:" + ll)
     //（2）Perplexity(复杂度)评估，越小越好
-//    val lp = ldamodel.logPerplexity(LDAinput)
-//    println("主题数" + topicnum + "的复杂度上界:" + lp)
+    //    val lp = ldamodel.logPerplexity(LDAinput)
+    //    println("主题数" + topicnum + "的复杂度上界:" + lp)
 
     //对参数进行调试
     //对迭代次数进行调试
-//    val llouput = new PrintWriter(outputpath + "llouput")
-//    val lpouput = new PrintWriter(outputpath + "lpouput")
-//    for (i <- Array(5, 10, 20, 40, 60, 120, 200, 500)) {
-//      val testlda = new LDA()
-//        .setK(topicnum)
-//        .setMaxIter(i)
-//        .setOptimizer("online")
-//        .setFeaturesCol("LDAvec")
-//      val testmodel = testlda.fit(LDAinput)
-//      val testll = testmodel.logLikelihood(LDAinput)
-//      val testlp = testmodel.logPerplexity(LDAinput)
-//      llouput.print(testll + "\n")
-//      lpouput.print(testlp + "\n")
-//    }
-//    llouput.close
-//    lpouput.close
+    //    val llouput = new PrintWriter(outputpath + "llouput")
+    //    val lpouput = new PrintWriter(outputpath + "lpouput")
+    //    for (i <- Array(5, 10, 20, 40, 60, 120, 200, 500)) {
+    //      val testlda = new LDA()
+    //        .setK(topicnum)
+    //        .setMaxIter(i)
+    //        .setOptimizer("online")
+    //        .setFeaturesCol("LDAvec")
+    //      val testmodel = testlda.fit(LDAinput)
+    //      val testll = testmodel.logLikelihood(LDAinput)
+    //      val testlp = testmodel.logPerplexity(LDAinput)
+    //      llouput.print(testll + "\n")
+    //      lpouput.print(testlp + "\n")
+    //    }
+    //    llouput.close
+    //    lpouput.close
     //主题数目K对logLikelihood值的影响
     //问题：可能由于目前数据量很小 k值在3-20间logll值一直递减
-//    val numKlogll = new PrintWriter(outputpath + "numKlogll")
-//    for (i <- Array(3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20)) {
-//      val testlda = new LDA()
-//        .setK(i)
-//        .setMaxIter(100)
-//        .setOptimizer("online")
-//        .setFeaturesCol("LDAvec")
-//      val testmodel = testlda.fit(LDAinput)
-//      val testll = testmodel.logLikelihood(LDAinput)
-//      numKlogll.print(testll + "\n")
-//    }
-//    numKlogll.close
+    //    val numKlogll = new PrintWriter(outputpath + "numKlogll")
+    //    for (i <- Array(3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20)) {
+    //      val testlda = new LDA()
+    //        .setK(i)
+    //        .setMaxIter(100)
+    //        .setOptimizer("online")
+    //        .setFeaturesCol("LDAvec")
+    //      val testmodel = testlda.fit(LDAinput)
+    //      val testll = testmodel.logLikelihood(LDAinput)
+    //      numKlogll.print(testll + "\n")
+    //    }
+    //    numKlogll.close
     //EM 方法，分析DocConcentration的影响，算法默认值是(50/k)+1
-//    val DocConcentrationloglp = new PrintWriter(outputpath + "DocConcentration")
-//    for (i <- Array(1.2, 3, 5, 7, 9, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20)) {
-//      val lda = new LDA()
-//        .setK(5)
-//        .setTopicConcentration(1.1)
-//        .setDocConcentration(i)
-//        .setOptimizer("online")
-//        .setMaxIter(30)
-//        .setFeaturesCol("LDAvec")
-//      val model = lda.fit(LDAinput)
-//      val lp = model.logPerplexity(LDAinput)
-//      DocConcentrationloglp.print(lp + "\n")
-//    }
-//    DocConcentrationloglp.close
+    //    val DocConcentrationloglp = new PrintWriter(outputpath + "DocConcentration")
+    //    for (i <- Array(1.2, 3, 5, 7, 9, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20)) {
+    //      val lda = new LDA()
+    //        .setK(5)
+    //        .setTopicConcentration(1.1)
+    //        .setDocConcentration(i)
+    //        .setOptimizer("online")
+    //        .setMaxIter(30)
+    //        .setFeaturesCol("LDAvec")
+    //      val model = lda.fit(LDAinput)
+    //      val lp = model.logPerplexity(LDAinput)
+    //      DocConcentrationloglp.print(lp + "\n")
+    //    }
+    //    DocConcentrationloglp.close
 
     //对语料进行聚类
     val topicProb = ldamodel.transform(LDAinput)
@@ -213,21 +213,39 @@ object LDAHotTopic {
         .withColumnRenamed("_4", "topicDistribution")
         .withColumnRenamed("_5", "maxprobability")
         .withColumnRenamed("_6", "prediction")
-      //聚类中里中心最近前10文档的DF
+      //聚类中里中心最近前10文档的
+      //使用LDA聚类后向量格式:
+      // vec([索引][词语][词频向量][该文档主题概率分布][最大概率][聚族号])
       val renamevecDF = vecDF.withColumnRenamed("_1", "index")
         .withColumnRenamed("_2", "words")
         .withColumnRenamed("_3", "LDAvec")
         .withColumnRenamed("_4", "topicDistribution")
         .withColumnRenamed("_5", "maxprobability")
         .withColumnRenamed("_6", "prediction")
-      renamevecDF.rdd.repartition(1).saveAsTextFile(outputpath + s"vecDF$k")
+      //      renamevecDF.rdd.repartition(1).saveAsTextFile(outputpath + s"vecDF$k")
+      val clusterRdd = renamevecDF.rdd
+      //调用java类创建目录
+      SaveFile.makeDir(outputpath + "clustervec/")
+      val saveclusterRdd = new PrintWriter(outputpath + "clustervec/" + s"clustervec$k")
+      val clusterRddtoArr = clusterRdd.collect
+      clusterRddtoArr.foreach {
+        case Row(index: Int, words: WrappedArray[String], ldavec: Vector, topicDistribution: Vector, maxprobability: Double, prediction: Int) =>
+          saveclusterRdd.print(index + " ")
+          saveclusterRdd.print(topicDistribution.toString.replace("[", "").replace("]", "") + " ")
+          saveclusterRdd.print(maxprobability + " ")
+          saveclusterRdd.print(prediction)
+          saveclusterRdd.println
+      }
+      saveclusterRdd.close
+
       //构建TF-Idf向量
       val idf = new IDF()
         .setInputCol("LDAvec")
         .setOutputCol("TfIdfvec")
       val idfmodel = idf.fit(renamevecDF)
       val newDF = idfmodel.transform(renamevecDF)
-      newDF.rdd.repartition(1).saveAsTextFile(outputpath + s"newDF$k")
+      SaveFile.makeDir(outputpath + "newDF/")
+      newDF.rdd.repartition(1).saveAsTextFile(outputpath + "newDF/" + s"newDF$k")
       newDF.show
       //从概率最高的10条文档中找到关键词 TF-IDF最大的10个词语
       val TFIDFvec = newDF.rdd.map {
@@ -264,7 +282,8 @@ object LDAHotTopic {
         arm ++= collwords(i)
       }
       val armlist = arm.toList
-      val clusterRank = new PrintWriter(outputpath + s"clusterRank$k")
+      SaveFile.makeDir(outputpath + "clusterRank/")
+      val clusterRank = new PrintWriter(outputpath + "clusterRank/" + s"clusterRank$k")
       val Keyword = KeywordExtractor.keywordExtractor("Url", 5, armlist, 10, 100, 0.85f)
       clusterRank.println(s"聚类:$k" + "热词")
       Keyword.foreach(clusterRank.println)
@@ -272,7 +291,8 @@ object LDAHotTopic {
 
       //保存第K个聚类结果每条文档热词
       HotWords.cache()
-      val Savehot = new PrintWriter(outputpath + s"Hotwords$k")
+      SaveFile.makeDir(outputpath + "Hotwords/")
+      val Savehot = new PrintWriter(outputpath + "Hotwords/" + s"Hotwords$k")
       val Collhot = HotWords.collect()
       var p = 1
       Collhot.foreach { line =>
@@ -319,7 +339,8 @@ object LDAHotTopic {
       }
       val tem = temp.toList
       //保存热词结果
-      val clusterhotwords = new PrintWriter(outputpath + s"clusterhotword$k")
+      SaveFile.makeDir(outputpath + "clusterhotword/")
+      val clusterhotwords = new PrintWriter(outputpath + "clusterhotword/" + s"clusterhotword$k")
       val keyword = KeywordExtractor.keywordExtractor("url", 5, tem, 10, 100, 0.85f)
       clusterhotwords.println(s"聚类:$k" + "热词")
       keyword.foreach(clusterhotwords.println)
@@ -339,7 +360,8 @@ object LDAHotTopic {
       //格式：
       //No words1:sim1,sim2,sim3 words2:sim1,sim2,sim3
       HotWords.cache()
-      val savehot = new PrintWriter(outputpath + s"HotwordsWithSim$k")
+      SaveFile.makeDir(outputpath + "HotwordsWithSim/")
+      val savehot = new PrintWriter(outputpath + "HotwordsWithSim/" + s"HotwordsWithSim$k")
       val collhot = HotWords.collect()
       var i = 1
       collhot.foreach { line =>
@@ -361,8 +383,6 @@ object LDAHotTopic {
       savehot.close
 
     }
-    
-    
 
   }
 }
