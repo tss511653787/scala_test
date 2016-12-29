@@ -68,7 +68,7 @@ object LDAHotTopic {
     val maxiter = 100
     val Optimizermethods = "em"
     //EM消耗大量内存 Online更快
-    val LDAinput = LDAWithvec.select("index", "words", "LDAvec")
+    val LDAinput = LDAWithvec.select("index", "words", "LDAvec", "time", "recall")
     val lda = new LDA()
       .setK(topicnum)
       .setMaxIter(maxiter)
@@ -172,11 +172,11 @@ object LDAHotTopic {
     topicProb.rdd.repartition(1).saveAsTextFile(outputpath + "topicProb")
     //打类别标签
     val topicdis = topicProb.map {
-      case Row(index: Int, words: WrappedArray[String], ldavec: Vector, topicDistribution: Vector) =>
+      case Row(index: Int, words: WrappedArray[String], ldavec: Vector, time: String, recall: Int, topicDistribution: Vector) =>
         val arrDouble = topicDistribution.toArray
         val maxindex = arrDouble.indexOf(arrDouble.max)
         val maxprobability = arrDouble.max
-        (index, words, ldavec, topicDistribution, maxprobability, maxindex)
+        (index, words, ldavec, topicDistribution, maxprobability, maxindex, time, recall)
     }
     val rawdatapre = topicdis.toDF()
     //对列重命名
@@ -186,15 +186,17 @@ object LDAHotTopic {
       .withColumnRenamed("_4", "topicDistribution")
       .withColumnRenamed("_5", "maxprobability")
       .withColumnRenamed("_6", "prediction")
+      .withColumnRenamed("_7", "time")
+      .withColumnRenamed("_8", "recall")
     datapre.show
     datapre.cache
     val assignments = datapre.rdd.map {
-      case Row(index: Int, words: WrappedArray[String], ldavec: Vector, topicDistribution: Vector, maxprobability: Double, prediction: Int) =>
-        (index, words, ldavec, topicDistribution, maxprobability, prediction)
+      case Row(index: Int, words: WrappedArray[String], ldavec: Vector, topicDistribution: Vector, maxprobability: Double, prediction: Int, time: String, recall: Int) =>
+        (index, words, ldavec, topicDistribution, maxprobability, prediction, time, recall)
     }
     assignments.cache()
     val clusterAssignments = assignments.groupBy {
-      case (index, words, ldavec, topicDistribution, maxprobability, prediction) => prediction
+      case (index, words, ldavec, topicDistribution, maxprobability, prediction, time, recall) => prediction
     }.collectAsMap
     for ((k, v) <- clusterAssignments.toSeq.sortBy(_._1)) {
       //按着文档对出题的概率进行降序排列
@@ -213,6 +215,8 @@ object LDAHotTopic {
         .withColumnRenamed("_4", "topicDistribution")
         .withColumnRenamed("_5", "maxprobability")
         .withColumnRenamed("_6", "prediction")
+        .withColumnRenamed("_7", "time")
+        .withColumnRenamed("_8", "recall")
       //聚类中里中心最近前10文档的
       //使用LDA聚类后向量格式:
       // vec([索引][词语][词频向量][该文档主题概率分布][最大概率][聚族号])
@@ -222,6 +226,8 @@ object LDAHotTopic {
         .withColumnRenamed("_4", "topicDistribution")
         .withColumnRenamed("_5", "maxprobability")
         .withColumnRenamed("_6", "prediction")
+        .withColumnRenamed("_7", "time")
+        .withColumnRenamed("_8", "recall")
       //      renamevecDF.rdd.repartition(1).saveAsTextFile(outputpath + s"vecDF$k")
       val clusterRdd = renamevecDF.rdd
       //调用java类创建目录
@@ -229,11 +235,14 @@ object LDAHotTopic {
       val saveclusterRdd = new PrintWriter(outputpath + "clustervec/" + s"clustervec$k")
       val clusterRddtoArr = clusterRdd.collect
       clusterRddtoArr.foreach {
-        case Row(index: Int, words: WrappedArray[String], ldavec: Vector, topicDistribution: Vector, maxprobability: Double, prediction: Int) =>
+        case Row(index: Int, words: WrappedArray[String], ldavec: Vector, topicDistribution: Vector, maxprobability: Double, prediction: Int, time: String, recall: Int) =>
           saveclusterRdd.print(index + " ")
           saveclusterRdd.print(topicDistribution.toString.replace("[", "").replace("]", "") + " ")
           saveclusterRdd.print(maxprobability + " ")
-          saveclusterRdd.print(prediction)
+          saveclusterRdd.print(prediction + " ")
+          val newtime = time.split(" ")
+          saveclusterRdd.print(newtime(0) + "," + newtime(1) + " ")
+          saveclusterRdd.print(recall)
           saveclusterRdd.println
       }
       saveclusterRdd.close
@@ -249,7 +258,7 @@ object LDAHotTopic {
       newDF.show
       //从概率最高的10条文档中找到关键词 TF-IDF最大的10个词语
       val TFIDFvec = newDF.rdd.map {
-        case Row(index: Int, words: WrappedArray[String], ldavec: Vector, topicDistribution: Vector, maxprobability: Double, prediction: Int, tfIdfvec: Vector) =>
+        case Row(index: Int, words: WrappedArray[String], ldavec: Vector, topicDistribution: Vector, maxprobability: Double, prediction: Int, time: String, recall: Int, tfIdfvec: Vector) =>
           tfIdfvec
       }
       val HotWords = TFIDFvec.map {
@@ -272,7 +281,7 @@ object LDAHotTopic {
       //TextRank
       //textrank 算法对每条文档进行关键词提取
       val rankvec = renamevecDF.rdd.map {
-        case Row(index: Int, words: WrappedArray[String], ldavec: Vector, topicDistribution: Vector, maxprobability: Double, prediction: Int) =>
+        case Row(index: Int, words: WrappedArray[String], ldavec: Vector, topicDistribution: Vector, maxprobability: Double, prediction: Int, time: String, recall: Int) =>
           words.toList
       }
       //对整个聚类提取进行rank
@@ -308,7 +317,7 @@ object LDAHotTopic {
       //利用wordVec2 模型对提取到的关键词进行语意扩展
       //wordvec2arrbu存贮对单个单词的语意扩展词组
       val wordvec2word = reallvecDF.rdd.map {
-        case Row(index: Int, words: WrappedArray[String], ldavec: Vector, topicDistribution: Vector, maxprobability: Double, prediction: Int) =>
+        case Row(index: Int, words: WrappedArray[String], ldavec: Vector, topicDistribution: Vector, maxprobability: Double, prediction: Int, time: String, recall: Int) =>
           words.toSeq
       }
       //设置最小词频
