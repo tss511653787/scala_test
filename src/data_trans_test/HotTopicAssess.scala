@@ -1,13 +1,14 @@
 package data_trans_test
 
-import org.apache.spark.SparkContext
-import org.apache.spark.SparkContext._
-import org.apache.spark._
-import org.apache.spark.sql._
-import org.apache.log4j.Level
-import org.apache.log4j.Logger
 import java.text.SimpleDateFormat
 import java.util.Date
+
+import scala.math._
+
+import org.apache.log4j.Level
+import org.apache.log4j.Logger
+import org.apache.spark._
+import org.apache.spark.sql._
 
 object HotTopicAssess {
   //屏蔽日志
@@ -48,15 +49,54 @@ object HotTopicAssess {
       line =>
         val split = line.split(" ")
         //index,topicDistribution,maxprobability,prediction,time,recall
+        //设置时间戳:当前时间-发帖时间
         val timestamp = caculateTime(split(4).toString, getNowDate())
-        (split(0).toInt, split(1).toString(), split(2).toDouble, split(3).toInt, timestamp, split(5).toInt)
+        (split(0).toInt, split(1), split(2).toDouble, split(3).toInt, timestamp, split(5).toInt)
     }
     caculaTimeDS.cache
     caculaTimeDS.repartition(1).saveAsTextFile(outputpath + "caculaTimeDS")
-    //2016-12-29
+    //为数据打标签
     val rawData = caculaTimeDS.map {
       case (index, topicDistribution, maxprobability, prediction, time, recall) =>
+        AccessDataRecord(index, topicDistribution, maxprobability, prediction, time, recall)
+    }
+    rawData.toDF().show
+    /*
+     * 计算话题话题热度指标
+     * 帖子数
+     * 关注度
+     * 时效性
+     * 突发度
+     * 纯净度
+     */
+    //聚簇中帖子数量
+    val eleNum = caculaTimeDS.count.toInt
 
+    //关注度计算
+    var attenDeg = 0.0
+    val recallRDD = caculaTimeDS.map {
+      case (index, topicDistribution, maxprobability, prediction, time, recall) =>
+        recall
+    }
+    //recallArr顺序发生变化
+    val recallArr = recallRDD.collect
+    val logValuearr = new Array[Double](eleNum)
+    for (i <- 0 until eleNum) {
+      logValuearr(i) = log10(recallArr(i) + 1) / log10(2)
+    }
+    attenDeg = logValuearr.sum / eleNum
+
+    //时效性计算
+    var timeDeg = 0.0
+    val timeRDD = caculaTimeDS.map {
+      case (index, topicDistribution, maxprobability, prediction, time, recall) =>
+        time
+    }
+    //timeArr顺序发生变化
+    val timeArr = timeRDD.collect
+    val timeValue = new Array[Double](eleNum)
+    for (i <- 0 until eleNum) {
+      timeValue(i) = log10(timeArr(i) + 1) / log10(2)
     }
 
   }
