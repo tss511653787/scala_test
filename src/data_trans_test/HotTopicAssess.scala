@@ -92,7 +92,7 @@ object HotTopicAssess {
     val recallArr = recallRDD.collect
     val logValuearr = new Array[Double](eleNum)
     for (i <- 0 until eleNum) {
-      logValuearr(i) = log10(recallArr(i) + 1) / log10(20)
+      logValuearr(i) = log10(recallArr(i) + 1) / log10(pow(20, 10))
     }
     attenDeg = logValuearr.sum / eleNum
 
@@ -106,7 +106,7 @@ object HotTopicAssess {
     val timeArr = timeRDD.collect
     val timeValue = new Array[Double](eleNum)
     for (i <- 0 until eleNum) {
-      timeValue(i) = log10(timeArr(i) + 1) / log10(6000)
+      timeValue(i) = log10(timeArr(i) + 1) / log10(pow(6000, 10))
     }
     timeDeg = (timeValue.sum / eleNum) * (-1)
 
@@ -138,7 +138,14 @@ object HotTopicAssess {
     prueDeg = (1 / denomin) * (-1)
 
     //热度
-    val hotDeg = eleNumDeg + attenDeg + timeDeg + pd + prueDeg
+    //权值设定
+    val param1 = 0.3
+    val param2 = 0.3
+    val param3 = 0.2
+    val param4 = 0.1
+    val param5 = 0.1
+
+    val hotDeg = eleNumDeg * param1 + attenDeg * param2 + timeDeg * param3 + pd * param4 + prueDeg * param5
 
     //记录保存
     val indicatorRes = new PrintWriter(outputpath + "indicatorRes")
