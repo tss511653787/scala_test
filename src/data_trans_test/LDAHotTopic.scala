@@ -217,6 +217,7 @@ object LDAHotTopic {
         .withColumnRenamed("_6", "prediction")
         .withColumnRenamed("_7", "time")
         .withColumnRenamed("_8", "recall")
+      val numSum = reallvecDF.count.toInt
       //聚类中里中心最近前10文档的
       //使用LDA聚类后向量格式:
       // vec([索引][词语][词频向量][该文档主题概率分布][最大概率][聚族号])
@@ -236,6 +237,7 @@ object LDAHotTopic {
       val clusterRddtoArr = clusterRdd.collect
       clusterRddtoArr.foreach {
         case Row(index: Int, words: WrappedArray[String], ldavec: Vector, topicDistribution: Vector, maxprobability: Double, prediction: Int, time: String, recall: Int) =>
+          saveclusterRdd.print(numSum + " ")
           saveclusterRdd.print(index + " ")
           saveclusterRdd.print(topicDistribution.toString.replace("[", "").replace("]", "") + " ")
           saveclusterRdd.print(maxprobability + " ")

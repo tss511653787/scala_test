@@ -519,7 +519,7 @@ object kmeansFindPaperHotTopic {
 case class RawDataRecord(index: Int, text: String, time: String, recall: Int)
 case class NewDataRecord(index: Int, words: WrappedArray[String], dist: Double, prediction: Int, text: String)
 case class toCol(vec: mllibVector)
-case class AccessDataRecord(index: Int, topicDistribution: String, maxprobability: Double, prediction: Int, time: Long, recall: Int)
+case class AccessDataRecord(postNum: Int, index: Int, topicDistribution: String, maxprobability: Double, prediction: Int, time: Long, recall: Int)
  
 
 

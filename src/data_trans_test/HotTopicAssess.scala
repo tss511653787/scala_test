@@ -9,6 +9,7 @@ import org.apache.log4j.Level
 import org.apache.log4j.Logger
 import org.apache.spark._
 import org.apache.spark.sql._
+import java.io.PrintWriter
 
 object HotTopicAssess {
   //屏蔽日志
@@ -50,15 +51,15 @@ object HotTopicAssess {
         val split = line.split(" ")
         //index,topicDistribution,maxprobability,prediction,time,recall
         //设置时间戳:当前时间-发帖时间
-        val timestamp = caculateTime(split(4).toString, getNowDate())
-        (split(0).toInt, split(1), split(2).toDouble, split(3).toInt, timestamp, split(5).toInt)
+        val timestamp = caculateTime(split(5).toString, getNowDate())
+        (split(0).toInt, split(1).toInt, split(2), split(3).toDouble, split(4).toInt, timestamp, split(6).toInt)
     }
     caculaTimeDS.cache
     caculaTimeDS.repartition(1).saveAsTextFile(outputpath + "caculaTimeDS")
     //为数据打标签
     val rawData = caculaTimeDS.map {
-      case (index, topicDistribution, maxprobability, prediction, time, recall) =>
-        AccessDataRecord(index, topicDistribution, maxprobability, prediction, time, recall)
+      case (postNum, index, topicDistribution, maxprobability, prediction, time, recall) =>
+        AccessDataRecord(postNum, index, topicDistribution, maxprobability, prediction, time, recall)
     }
     rawData.toDF().show
     /*
@@ -71,33 +72,85 @@ object HotTopicAssess {
      */
     //聚簇中帖子数量
     val eleNum = caculaTimeDS.count.toInt
+    //帖子比重
+    var eleNumDeg = 0.0
+    val numberRDD = caculaTimeDS.map {
+      case (postNum, index, topicDistribution, maxprobability, prediction, time, recall) =>
+        postNum
+    }
+    val postNumberArr = numberRDD.collect.toArray
+    val postNumber = postNumberArr(0)
+    eleNumDeg = postNumber.toDouble / (4958).toDouble
 
     //关注度计算
     var attenDeg = 0.0
     val recallRDD = caculaTimeDS.map {
-      case (index, topicDistribution, maxprobability, prediction, time, recall) =>
+      case (postNum, index, topicDistribution, maxprobability, prediction, time, recall) =>
         recall
     }
     //recallArr顺序发生变化
     val recallArr = recallRDD.collect
     val logValuearr = new Array[Double](eleNum)
     for (i <- 0 until eleNum) {
-      logValuearr(i) = log10(recallArr(i) + 1) / log10(2)
+      logValuearr(i) = log10(recallArr(i) + 1) / log10(20)
     }
     attenDeg = logValuearr.sum / eleNum
 
     //时效性计算
     var timeDeg = 0.0
     val timeRDD = caculaTimeDS.map {
-      case (index, topicDistribution, maxprobability, prediction, time, recall) =>
+      case (postNum, index, topicDistribution, maxprobability, prediction, time, recall) =>
         time
     }
     //timeArr顺序发生变化
     val timeArr = timeRDD.collect
     val timeValue = new Array[Double](eleNum)
     for (i <- 0 until eleNum) {
-      timeValue(i) = log10(timeArr(i) + 1) / log10(2)
+      timeValue(i) = log10(timeArr(i) + 1) / log10(6000)
     }
+    timeDeg = (timeValue.sum / eleNum) * (-1)
+
+    //突发度计算
+    //整个聚类的突发度指标pd
+    var pd = 0.0
+    var promDeg = 0.0
+    //每个“主题”的突发度
+    val promRDD = caculaTimeDS.map {
+      case (postNum, index, topicDistribution, maxprobability, prediction, time, recall) =>
+        maxprobability
+    }
+    val promArr = promRDD.collect
+    val average = promArr.sum / eleNum
+    for (i <- 0 until eleNum) {
+      promDeg += pow(promArr(i) - average, 2)
+    }
+    promDeg = promDeg / eleNum
+    for (i <- 0 until eleNum) {
+      pd += promDeg * promArr(i)
+    }
+
+    //纯净度计算
+    var prueDeg = 0.0
+    var denomin = 0.0
+    for (i <- 0 until eleNum) {
+      denomin += (log10(promArr(i)) / log10(2)) * promArr(i)
+    }
+    prueDeg = (1 / denomin) * (-1)
+
+    //热度
+    val hotDeg = eleNumDeg + attenDeg + timeDeg + pd + prueDeg
+
+    //记录保存
+    val indicatorRes = new PrintWriter(outputpath + "indicatorRes")
+    indicatorRes.println("输出结果如下:")
+    indicatorRes.println("帖子数量:" + postNumber)
+    indicatorRes.println("帖子比重:" + eleNumDeg)
+    indicatorRes.println("关注度:" + attenDeg)
+    indicatorRes.println("时效性:" + timeDeg)
+    indicatorRes.println("突发度:" + pd)
+    indicatorRes.println("纯净度:" + prueDeg)
+    indicatorRes.println("热度:" + hotDeg)
+    indicatorRes.close
 
   }
 }
