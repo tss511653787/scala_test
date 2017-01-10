@@ -24,6 +24,7 @@ object HotTopicAssess {
     import sqlContext.implicits._
     //输入路径
     val inputpath = "C:/Users/dell/Desktop/clustervec/clustervec0"
+    val vecinput = "C:/Users/dell/Desktop/clustervec/saveAvgVec"
     //输出路径
     val outputpath = "C:/Users/dell/Desktop/HotAssessResult/"
     val DS = spark.textFile(inputpath)
@@ -109,7 +110,12 @@ object HotTopicAssess {
       timeValue(i) = log10(timeArr(i) + 1) / log10(pow(6000, 10))
     }
     timeDeg = (timeValue.sum / eleNum) * (-1)
-
+    val vecMomentAvg = spark.textFile(vecinput)
+    val vecToDouble = vecMomentAvg.map { str => str.toDouble }
+    val vecArrDou = vecToDouble.collect
+    val clusterNum = inputpath.replaceAll("[^(0-9)]", "").toInt
+    println(clusterNum)
+    var timeStap = vecArrDou(clusterNum)
     //突发度计算
     //整个聚类的突发度指标pd
     var pd = 0.0
@@ -144,9 +150,9 @@ object HotTopicAssess {
     val param3 = 0.2
     val param4 = 0.1
     val param5 = 0.1
-
+    var intension = vecArrDou(clusterNum)
     val hotDeg = eleNumDeg * param1 + attenDeg * param2 + timeDeg * param3 + pd * param4 + prueDeg * param5
-
+    var totalHeat = intension * 0.1 + hotDeg
     //记录保存
     val indicatorRes = new PrintWriter(outputpath + "indicatorRes")
     indicatorRes.println("输出结果如下:")
@@ -156,7 +162,9 @@ object HotTopicAssess {
     indicatorRes.println("时效性:" + timeDeg)
     indicatorRes.println("突发度:" + pd)
     indicatorRes.println("纯净度:" + prueDeg)
-    indicatorRes.println("热度:" + hotDeg)
+    indicatorRes.println("聚族热度:" + hotDeg)
+    indicatorRes.println("话题强度:" + intension)
+    indicatorRes.println("总热度:" + totalHeat)
     indicatorRes.close
 
   }

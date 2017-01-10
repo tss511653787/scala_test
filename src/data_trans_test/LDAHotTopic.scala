@@ -32,6 +32,7 @@ object LDAHotTopic {
     val spark = new SparkContext(conf)
     val sqlContext = new org.apache.spark.sql.SQLContext(spark)
     import sqlContext.implicits._
+    val deskPath = "C:/Users/dell/Desktop/"
     val inputpath = "C:/Users/dell/Desktop/data/"
     val outputpath = "C:/Users/dell/Desktop/LDAresult/"
     val src = spark.textFile(inputpath + "kmeans_noST_noLC")
@@ -96,8 +97,26 @@ object LDAHotTopic {
         }
         (topic, str)
     }
-    //词语-主题矩阵 列代表每个词语在每个主题上的概率分布 行书是每个不重复词语
+    //文档-主题矩阵 :文档在每个主题上的概率分布情况
     val topicsMat = ldamodel.topicsMatrix
+    val colIter = topicsMat.colIter
+    //获取矩阵的行列数
+    val numCols = topicsMat.numCols
+    val numRows = topicsMat.numRows
+    var avgVec = new Array[Double](topicnum)
+    var i = 0
+    colIter.foreach {
+      vec =>
+        val arrVec = vec.toArray
+        avgVec(i) = arrVec.sum / numRows
+        i = i + 1
+    }
+    val saveAvgVec = new PrintWriter(deskPath + "saveAvgVec")
+    avgVec.foreach { arr =>
+      saveAvgVec.print(arr)
+      saveAvgVec.println
+    }
+    saveAvgVec.close
     println("文档-主题矩阵：")
     println(topicsMat.toString)
 
