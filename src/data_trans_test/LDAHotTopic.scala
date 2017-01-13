@@ -35,7 +35,7 @@ object LDAHotTopic {
     val deskPath = "C:/Users/dell/Desktop/"
     val inputpath = "C:/Users/dell/Desktop/data/"
     val outputpath = "C:/Users/dell/Desktop/LDAresult/"
-    val src = spark.textFile(inputpath + "kmeans_noST_noLC")
+    val src = spark.textFile(inputpath + "cardata_1_12")
     val srcDS = src.map {
       line =>
         var data = line.split(",")
