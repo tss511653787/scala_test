@@ -22,18 +22,21 @@ object HotTopicAssess {
     val spark = new SparkContext(conf)
     val sqlContext = new org.apache.spark.sql.SQLContext(spark)
     import sqlContext.implicits._
-    //读取目录下的全部文件
-    //i为类簇数目
+    //设置输出路径ouputpath
+    val outputpath = "C:/Users/dell/Desktop/HotAssessResult/"
+    //建立路径
+    SaveFile.makeDir(outputpath)
+    //初始化保存文件
+    val indicatorRes = new PrintWriter(outputpath + "indicatorRes")
+    //变量i是聚类个数，值是LDA聚设置的K值
     for (i <- 0 to 9) {
       //输入路径
       val inputpath = s"C:/Users/dell/Desktop/clustervec/clustervec$i"
       val vecinput = "C:/Users/dell/Desktop/clustervec/saveAvgVec"
-      //输出路径
-      val outputpath = s"C:/Users/dell/Desktop/HotAssessResult$i/"
       val DS = spark.textFile(inputpath)
       DS.cache
-      //时间戳处理
 
+      //时间戳处理
       //获取当前的时间戳
       def getNowDate(): String = {
         var now: Date = new Date()
@@ -59,7 +62,7 @@ object HotTopicAssess {
           (split(0).toInt, split(1).toInt, split(2), split(3).toDouble, split(4).toInt, timestamp, split(6).toInt)
       }
       caculaTimeDS.cache
-      caculaTimeDS.repartition(1).saveAsTextFile(outputpath + "caculaTimeDS")
+      //      caculaTimeDS.repartition(1).saveAsTextFile(outputpath + "caculaTimeDS")
       //为数据打标签
       val rawData = caculaTimeDS.map {
         case (postNum, index, topicDistribution, maxprobability, prediction, time, recall) =>
@@ -157,7 +160,7 @@ object HotTopicAssess {
       val hotDeg = eleNumDeg * param1 + attenDeg * param2 + timeDeg * param3 + pd * param4 + prueDeg * param5
       var totalHeat = intension * 0.1 + hotDeg
       //记录保存
-      val indicatorRes = new PrintWriter(outputpath + "indicatorRes")
+
       //    indicatorRes.println("输出结果如下:")
       //    indicatorRes.println("帖子数量:" + postNumber)
       //    indicatorRes.println("帖子比重:" + eleNumDeg)
@@ -169,7 +172,7 @@ object HotTopicAssess {
       //    indicatorRes.println("话题强度:" + intension)
       //    indicatorRes.println("总热度:" + totalHeat)
 
-      indicatorRes.println("输出结果如下:")
+      indicatorRes.println(s"输出结果如下$i:")
       indicatorRes.println(postNumber)
       indicatorRes.println(eleNumDeg)
       indicatorRes.println(attenDeg)
@@ -179,8 +182,9 @@ object HotTopicAssess {
       indicatorRes.println(hotDeg)
       indicatorRes.println(intension)
       indicatorRes.println(totalHeat)
-      indicatorRes.close
+      indicatorRes.println
 
     }
+    indicatorRes.close
   }
 }
