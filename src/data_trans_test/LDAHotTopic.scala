@@ -237,9 +237,10 @@ object LDAHotTopic {
         .withColumnRenamed("_7", "time")
         .withColumnRenamed("_8", "recall")
       val numSum = reallvecDF.count.toInt
+      //ClusterVec 输出
       //聚类中里中心最近前10文档的
       //使用LDA聚类后向量格式:
-      // vec([索引][词语][词频向量][该文档主题概率分布][最大概率][聚族号])
+      // vec([该聚族中帖子数目][索引][该文档主题概率分布][最大概率][聚族号][发帖时间][回复数])
       val renamevecDF = vecDF.withColumnRenamed("_1", "index")
         .withColumnRenamed("_2", "words")
         .withColumnRenamed("_3", "LDAvec")
