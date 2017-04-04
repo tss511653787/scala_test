@@ -23,7 +23,10 @@ object HotTopicAssess {
     val sqlContext = new org.apache.spark.sql.SQLContext(spark)
     import sqlContext.implicits._
     //设置输出路径ouputpath
-    val outputpath = "C:/Users/dell/Desktop/HotAssessResult/"
+    val outputpath = "C:/Users/Administrator/Desktop/HotAssessResult/"
+    //建立cherkpoint点
+    val cherkPointPath = "C:/Users/Administrator/Desktop/cherkpoint"
+    spark.setCheckpointDir(cherkPointPath)
     //建立路径
     SaveFile.makeDir(outputpath)
     //初始化保存文件
@@ -31,10 +34,11 @@ object HotTopicAssess {
     //变量i是聚类个数，值是LDA聚设置的K值
     for (i <- 0 to 9) {
       //输入路径
-      val inputpath = s"C:/Users/dell/Desktop/clustervec/clustervec$i"
-      val vecinput = "C:/Users/dell/Desktop/clustervec/saveAvgVec"
+      val inputpath = s"C:/Users/Administrator/Desktop/clustervec/clustervec$i"
+      val vecinput = "C:/Users/Administrator/Desktop/clustervec/saveAvgVec"
       val DS = spark.textFile(inputpath)
       DS.cache
+      DS.checkpoint()
 
       //时间戳处理
       //获取当前的时间戳

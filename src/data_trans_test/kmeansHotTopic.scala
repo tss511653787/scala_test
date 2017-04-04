@@ -46,9 +46,14 @@ object kmeansFindPaperHotTopic {
     //引入spark sql标签
     val sqlContext = new org.apache.spark.sql.SQLContext(spark)
     import sqlContext.implicits._
+    //建立cherkpoint点
+    val cherkPointPath = "C:/Users/Administrator/Desktop/cherkpoint"
+    spark.setCheckpointDir(cherkPointPath)
     //读取数据
-    val inputpath = "C:/Users/dell/Desktop/data/"
+    val inputpath = "F:/data/Car_data/"
     val src = spark.textFile(inputpath + "kmeans_noST_noLC")
+    src.cache()
+    src.checkpoint()
     val srcDS = src.map {
       line =>
         var data = line.split(",")
@@ -73,7 +78,7 @@ object kmeansFindPaperHotTopic {
     wordsData.cache
     wordsData.show
     //存储路径
-    val newpath = "C:/Users/dell/Desktop/KmeansResult/"
+    val newpath = "C:/Users/Administrator/Desktop/KmeansResult/"
 
     //计算每个词在文档中的词频
     val hashingTF = new HashingTF()

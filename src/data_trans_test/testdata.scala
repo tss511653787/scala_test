@@ -22,8 +22,8 @@ object testdata {
     val sc = new SparkContext(conf)
     val sqlContext = new org.apache.spark.sql.SQLContext(sc)
     import sqlContext.implicits._
-    val path = "C:/Users/dell/Desktop/data/Cardata250.csv"
-    //path:hdfs://tss.hadoop2-1:8020/user/root/dataSet/data/test2_bsk.csv C:/Users/dell/Desktop/data/Cardata250.csv
+    val path = "C:/Users/Administrator/Desktop/data/Cardata250.csv"
+    //path:hdfs://tss.hadoop2-1:8020/user/root/dataSet/data/test2_bsk.csv C:/Users/Administrator/Desktop/data/Cardata250.csv
     //读取文件
     val text = sc.textFile(path)
     text.cache()
@@ -36,7 +36,7 @@ object testdata {
     val dataDF = data.toDF
     dataDF.show
     //保存dataDF
-    val newpath = "C:/Users/dell/Desktop/ouput/"
+    val newpath = "C:/Users/Administrator/Desktop/ouput/"
     dataDF.rdd.repartition(1).saveAsTextFile(newpath + "dataDF")
     //分词处理
     val list = dataDF.rdd.map {

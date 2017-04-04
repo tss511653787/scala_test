@@ -32,10 +32,15 @@ object LDAHotTopic {
     val spark = new SparkContext(conf)
     val sqlContext = new org.apache.spark.sql.SQLContext(spark)
     import sqlContext.implicits._
-    val deskPath = "C:/Users/dell/Desktop/"
-    val inputpath = "C:/Users/dell/Desktop/data/"
-    val outputpath = "C:/Users/dell/Desktop/LDAresult/"
+    val deskPath = "C:/Users/Administrator/Desktop/"
+    val inputpath = "C:/Users/Administrator/Desktop/data/"
+    val outputpath = "C:/Users/Administrator/Desktop/LDAresult/"
+    //建立cherkpoint点
+    val cherkPointPath = "C:/Users/Administrator/Desktop/cherkpoint"
+    spark.setCheckpointDir(cherkPointPath)
     val src = spark.textFile(inputpath + "cardata_1_12")
+    src.cache()
+    src.checkpoint()
     val srcDS = src.map {
       line =>
         var data = line.split(",")

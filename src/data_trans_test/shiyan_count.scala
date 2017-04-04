@@ -23,7 +23,7 @@ object shiyan_count {
     val spark = new SparkContext(conf)
     val sqlContext = new org.apache.spark.sql.SQLContext(spark)
     import sqlContext.implicits._
-    val input = "C:/Users/dell/Desktop/data/CountVecinput.txt"
+    val input = "C:/Users/Administrator/Desktop/data/CountVecinput.txt"
     val src = spark.textFile(input)
     val countDF = src.toDF()
     countDF.show()
@@ -37,7 +37,7 @@ object shiyan_count {
     val countvectorizermodel = countvectorizer.fit(wordsData)
     val LDAWithvec = countvectorizermodel.transform(wordsData)
     LDAWithvec.show
-    val outputpath1 = "C:/Users/dell/Desktop/"
+    val outputpath1 = "C:/Users/Administrator/Desktop/"
     //LDAWithvec.rdd.repartition(1).saveAsTextFile(outputpath1 + "LDAWithvec")
     val vec = LDAWithvec.rdd.map{
       case Row(value:String,words:WrappedArray[String],vec:Vector)=>

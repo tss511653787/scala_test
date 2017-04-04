@@ -23,12 +23,18 @@ object Copy_testdata {
       .setAppName("testdata")
     val sc = new SparkContext(conf)
     val sqlContext = new org.apache.spark.sql.SQLContext(sc)
+    //建立cherkpoint点
+    val cherkPointPath = "C:/Users/Administrator/Desktop/cherkpoint"
+    SaveFile.makeDir(cherkPointPath)
+    sc.setCheckpointDir(cherkPointPath)
+    //引入隐式转换
     import sqlContext.implicits._
-    val path = "C:/Users/dell/Desktop/data/cardata_1_12.csv"
+    val path = "F:/data/Car_data/Cardata5000.csv"
     //path:hdfs://tss.hadoop2-1:8020/user/root/dataSet/data/test2_bsk.csv C:/Users/dell/Desktop/data/Cardata250.csv
     //读取文件
     val text = sc.textFile(path)
     text.cache()
+    text.checkpoint();
     //获取列数据
     val data = text.map {
       rawline =>
@@ -39,7 +45,7 @@ object Copy_testdata {
     dataDF.cache
     dataDF.show
     //保存dataDF
-    val newpath = "C:/Users/dell/Desktop/ouput/"
+    val newpath = "C:/Users/Administrator/Desktop/ouput/"
     dataDF.rdd.repartition(1).saveAsTextFile(newpath + "dataDF")
     //分词处理
     val casetext = dataDF.rdd.map {
@@ -69,7 +75,7 @@ object Copy_testdata {
     //运行分词类
     CopyOfAnaylyzerTools.split()
     //再次读入结果
-    val inputpath = "C:/Users/dell/Desktop/splitoutput/*"
+    val inputpath = "C:/Users/Administrator/Desktop/splitoutput/*"
     val wordsDS = sc.wholeTextFiles(inputpath)
     wordsDS.cache
     val toint = wordsDS.map {

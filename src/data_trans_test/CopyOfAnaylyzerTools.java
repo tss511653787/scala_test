@@ -55,10 +55,10 @@ public class CopyOfAnaylyzerTools {
 	// 测试分词
 	public static void main(String[] args) {
 		long start = System.nanoTime();
-		String path = "C:/Users/dell/Desktop/abs.txt";
-		// String path = "C:/Users/dell/Desktop/ouput/savechar"; // 源文件路径
+		String path = "C:/Users/Administrator/Desktop/abs.txt";
+		// String path = "C:/Users/Administrator/Desktop/ouput/savechar"; // 源文件路径
 		// 输出文件路径
-		String resPath = "C:/Users/dell/Desktop/splitoutput/";
+		String resPath = "C:/Users/Administrator/Desktop/splitoutput/";
 		int i = 0; // 读取的行数标记，每轮读取100行
 		BufferedReader br = null;
 		String str = null;
@@ -101,9 +101,9 @@ public class CopyOfAnaylyzerTools {
 	// 调用分词
 	public static void split() {
 		long start = System.nanoTime();
-		String path = "C:/Users/dell/Desktop/ouput/savechar"; // 源文件路径
+		String path = "C:/Users/Administrator/Desktop/ouput/savechar"; // 源文件路径
 		// 输出文件路径
-		String resPath = "C:/Users/dell/Desktop/splitoutput/";
+		String resPath = "C:/Users/Administrator/Desktop/splitoutput/";
 		int i = 0; // 读取的行数标记，每轮读取100行
 		BufferedReader br = null;
 		String str = null;

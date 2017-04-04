@@ -21,7 +21,7 @@ object shiyan_tfidf {
       .setMaster("local[2]")
       .setAppName("tf-idfTest")
     val spark = new SparkContext(conf)
-    val input = "C:/Users/dell/Desktop/data/data_text.txt"
+    val input = "C:/Users/Administrator/Desktop/data/data_text.txt"
     val src = spark.textFile(input)
     val wordsData = src.map { line =>
       val words = line.split(" ")
@@ -29,11 +29,11 @@ object shiyan_tfidf {
     }
     val hashingTF = new HashingTF().setHashAlgorithm("native")
     val featurizedData = hashingTF.transform(wordsData)
-    featurizedData.repartition(1).saveAsTextFile("C:/Users/dell/Desktop/out2")
+    featurizedData.repartition(1).saveAsTextFile("C:/Users/Administrator/Desktop/out2")
     val newidf = new IDF()
     val NewidfModel = newidf.fit(featurizedData)
     val vecTFIDF = NewidfModel.transform(featurizedData)
-    vecTFIDF.repartition(1).saveAsTextFile("C:/Users/dell/Desktop/out3")
+    vecTFIDF.repartition(1).saveAsTextFile("C:/Users/Administrator/Desktop/out3")
     val wordsarr = wordsData.map { line =>
       val lineword = line.toArray
       lineword
@@ -62,7 +62,7 @@ object shiyan_tfidf {
 
     }
 
-    hot.repartition(1).saveAsTextFile("C:/Users/dell/Desktop/hotest")
+    hot.repartition(1).saveAsTextFile("C:/Users/Administrator/Desktop/hotest")
 
   }
 }
