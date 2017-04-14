@@ -90,17 +90,23 @@ object kmeansFindPaperHotTopic {
     println("text+words+hashWithTf:")
     featurizedData.cache
     featurizedData.show
-    featurizedData.rdd.repartition(1).saveAsTextFile(newpath + "text_words_hashWithTf")
+    featurizedData
+      .rdd.repartition(1)
+      .saveAsTextFile(newpath + "text_words_hashWithTf")
     featurizedData.select($"hashWithTf").take(50).foreach(println)
 
     //计算每个词的IDF
-    val idf = new IDF().setInputCol("hashWithTf").setOutputCol("features")
+    val idf = new IDF()
+      .setInputCol("hashWithTf")
+      .setOutputCol("features")
     //计算每个词的TF-IDF
     val idfModel = idf.fit(featurizedData)
     val rescaledData = idfModel.transform(featurizedData)
     rescaledData.cache
     rescaledData.show
-    rescaledData.rdd.repartition(1).saveAsTextFile(newpath + "text_words_hashWithTf_idfnum")
+    rescaledData
+      .rdd.repartition(1)
+      .saveAsTextFile(newpath + "text_words_hashWithTf_idfnum")
     //对数据的归一化判断
     val rescaledDatanormalized = rescaledData.select($"index", $"features")
     val normalizedMlibVectorRDD = rescaledDatanormalized.rdd.map {
@@ -109,7 +115,9 @@ object kmeansFindPaperHotTopic {
         mlvector
     }
     //normalizedMlibVectorRDD是Mlib RDD[Vector] 其中Vector是稀疏矩阵
-    normalizedMlibVectorRDD.repartition(1).saveAsTextFile(newpath + "normalizedMlibVector")
+    normalizedMlibVectorRDD
+      .repartition(1)
+      .saveAsTextFile(newpath + "normalizedMlibVector")
 
     val CardataMatrix = new RowMatrix(normalizedMlibVectorRDD)
     val CarMatrixSummary = CardataMatrix.computeColumnSummaryStatistics()
@@ -119,7 +127,8 @@ object kmeansFindPaperHotTopic {
     //结果写入文本文件
     SaveFile.makeDir(newpath + "Matrixout/")
     val Matrixoutput = new PrintWriter(newpath + "Matrixout/" + "Matrixoutput")
-    Matrixoutput.println("data features 矩阵平均值:" + CarMatrixSummary.mean + "\n" + "data features 矩阵方差:" + CarMatrixSummary.variance + "\n")
+    Matrixoutput.println("data features 矩阵平均值:" + CarMatrixSummary.mean
+      + "\n" + "data features 矩阵方差:" + CarMatrixSummary.variance + "\n")
     Matrixoutput.close
 
     //k-means
@@ -129,6 +138,7 @@ object kmeansFindPaperHotTopic {
     val kmeans = new KMeans()
       .setK(Knumber)
       .setMaxIter(MaxIter)
+
     //Bisecting Kmeans
     val BiKmunber = 13
     val BiMaxIter = 100
@@ -148,16 +158,23 @@ object kmeansFindPaperHotTopic {
     //fitModel
     val kmeansModel = kmeans.fit(rescaledData)
     val clusterCenters = kmeansModel.clusterCenters;
+    //TODO
+    //    val kmeanspre = kmeansModel.transform(rescaledData)
+    //    val kmeansmodelcost = kmeansModel.computeCost(rescaledData)
+    //    println("Kmeans WSSSE:" + kmeansmodelcost)
+
     //聚类中心
     println("k-means聚类中心:")
     clusterCenters.foreach(println)
     val linenum = clusterCenters.length
+    //聚类中心落地
     SaveFile.makeDir(newpath + "cluterCenter/")
     val clusterCenters_output = new PrintWriter(newpath + "cluterCenter/" + "clusterCenters_output")
     for (line <- 0 to linenum - 1) {
       clusterCenters_output.println(clusterCenters(line).toString)
     }
     clusterCenters_output.close
+
     val WSSSE = kmeansModel.computeCost(rescaledData)
     //误差计算
     println("with set sum of squared errors:" + WSSSE)
@@ -165,18 +182,23 @@ object kmeansFindPaperHotTopic {
     SaveFile.makeDir(newpath + "Find/")
     val findNumK = new PrintWriter(newpath + "Find/" + "findNumK")
     val savefindK = new PrintWriter(newpath + "Find/" + "savefindK")
-    val ks: Array[Int] = Array(3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20)
+
+    //k:3-20 WSSSE的变化
+    val ks: Array[Int] = Array(3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14,
+      15, 16, 17, 18, 19, 20)
     ks.foreach { k =>
       val Kmeanns = new KMeans()
         .setK(k)
         .setMaxIter(100) //最大迭代次数
       val kmeansModel = Kmeanns.fit(rescaledData)
       val ssd = kmeansModel.computeCost(rescaledData)
-      findNumK.println("sum of squared distances of points to their nearest center when k=" + k + " -> " + ssd)
+      findNumK.println("sum of squared distances of points to their nearest center when k="
+        + k + " -> " + ssd)
       savefindK.println(k + "," + ssd) //3-20
     }
     findNumK.close
     savefindK.close
+    //TODO
     //find Bikmeans K
     //    val BisavefindK = new PrintWriter(newpath + "BisavefindK")
     //    val biks: Array[Int] = Array(3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20)
@@ -190,7 +212,7 @@ object kmeansFindPaperHotTopic {
     //    }
     //    BisavefindK.close
 
-    //保存k-means结果rdd
+    //保存k-means聚类结果rdd
     val predictioned = kmeansModel.summary.predictions
     predictioned.cache()
     //取前10行的聚类结果指定列输出到控制台观察结果
@@ -208,14 +230,19 @@ object kmeansFindPaperHotTopic {
       .rdd
       .repartition(1)
       .saveAsTextFile(newpath + "kmeans-summary")
+    //TODO
     //predictioned
+    // val datapre = kmeanspre
+    //.select($"index", $"words", $"features", $"prediction", $"text")
+    //.rdd
     val datapre = Bikmeanspre
       .select($"index", $"words", $"features", $"prediction", $"text")
       .rdd
 
     datapre.repartition(1).saveAsTextFile(newpath + "datapre")
     //方法：计算向量的欧拉距离
-    def computeDistance(v1: DenseVector[Double], v2: DenseVector[Double]) = pow(v1 - v2, 2).sum
+    def computeDistance(v1: DenseVector[Double], v2: DenseVector[Double])
+    = pow(v1 - v2, 2).sum
     //case匹配需要的属性
     val dataVectorComputeDist = datapre.map {
       case Row(index: Int, words: WrappedArray[String], features: Vector, prediction: Int, text: String) =>
@@ -232,6 +259,7 @@ object kmeansFindPaperHotTopic {
     //输出每个类前10个向量结果 按与其聚类中心距离排序(K,V)按K排序
     for ((k, v) <- clusterAssignments.toSeq.sortBy(_._1)) {
       println(s"聚类中心 $k:")
+      //按与其聚类中心距离远近排序
       val m = v.toSeq.sortBy(_._3)
       print(m.take(10).map {
         case (index, prediction, dist, words, features, text) => (index, prediction, dist, words, text)
@@ -287,8 +315,11 @@ object kmeansFindPaperHotTopic {
       //绑定后传化为DataFrame格式
       val rddvecIndexWithvecTFIDFDF = rddvecIndexWithvecTFIDF.toDF()
       //用select修改列名_1==>index _2==> features
-      val rename = rddvecIndexWithvecTFIDFDF.select(rddvecIndexWithvecTFIDFDF("_1").as("index"), rddvecIndexWithvecTFIDFDF("_2").as("features"))
+      val rename = rddvecIndexWithvecTFIDFDF.select(rddvecIndexWithvecTFIDFDF("_1")
+        .as("index"), rddvecIndexWithvecTFIDFDF("_2")
+        .as("features"))
       rename.cache
+      //TODO 这个地方需要优化 笛卡尔积操作很费时间
       //两个DF进行join操作
       val vecjoinIDF = vecDF.join(rename, vecDF("index") === rename("index"))
       //输出连接结果
@@ -319,6 +350,8 @@ object kmeansFindPaperHotTopic {
         //去重词语保存Hash值
         SaveFile.makeDir(newpath + "Savedistinct/")
         val savedistinct = new PrintWriter(newpath + "Savedistinct/" + "savedistinct")
+
+        //java:hashcode()->scala:.##()
         distinctWords.foreach {
           words => savedistinct.print(words.hashCode() + " ")
         }
@@ -329,6 +362,9 @@ object kmeansFindPaperHotTopic {
         }
         SaveFile.makeDir(newpath + "HotWordsvec/")
         HotWordsvec.repartition(1).saveAsTextFile(newpath + "HotWordsvec/" + s"HotWordsvec$k")
+
+        //利用wordvec2模型也可以对文本数据进行向量化
+        //用来将词表示为数值型向量的工具，其基本思想是将文本中的词映射成一个 K 维数值向量
         val wordvec2row = wordsWithFeatureDFRdd.toDF()
         val wordvec2re = wordvec2row
           .withColumnRenamed("_1", "words")
@@ -347,8 +383,8 @@ object kmeansFindPaperHotTopic {
         wordvec.setMinCount(minfrewords)
         //训练过程
         val wordvec2model = wordvec.fit(wordvec2input)
-        //利用wordvec2模型也可以对文本数据进行向量化
-        //用来将词表示为数值型向量的工具，其基本思想是将文本中的词映射成一个 K 维数值向量
+
+        //热门词语提取
         //提取词语代码
         val HotWords = HotWordsvec.map {
           case SparseVector(size, indices, values) =>
@@ -356,7 +392,7 @@ object kmeansFindPaperHotTopic {
             var tfidfvalues = values
             val arrbuf = new ArrayBuffer[String]
             for (i <- 1 to 5) {
-              //寻找每个向量中tf-idf最大的3个词语
+              //寻找每个向量中tf-idf最大的5个词语
               val findmax = tfidfvalues.indexOf(tfidfvalues.max)
               //找到最大值后置0
               tfidfvalues(findmax) = 0.0
@@ -384,6 +420,7 @@ object kmeansFindPaperHotTopic {
           i = i + 1
         }
         Savehot.close
+
         //textRank
         val tempp = new ArrayBuffer[String]
         for (i <- 0 to Collhot.length - 1) {
@@ -392,8 +429,10 @@ object kmeansFindPaperHotTopic {
         val temm = tempp.toList
         //保存热词结果
         SaveFile.makeDir(newpath + "clusterhotword/")
-        val clusterhotwords = new PrintWriter(newpath + "clusterhotword/" + s"clusterhotword$k")
-        val keyword = KeywordExtractor.keywordExtractor("url", 5, temm, 10, 100, 0.85f)
+        val clusterhotwords = new PrintWriter(newpath +
+          "clusterhotword/" + s"clusterhotword$k")
+        val keyword = KeywordExtractor
+          .keywordExtractor("url", 5, temm, 10, 100, 0.85f)
         clusterhotwords.println(s"聚类:$k" + "热词")
         keyword.foreach(clusterhotwords.println)
         clusterhotwords.close()
@@ -525,63 +564,3 @@ case class RawDataRecord(index: Int, text: String, time: String, recall: Int)
 case class NewDataRecord(index: Int, words: WrappedArray[String], dist: Double, prediction: Int, text: String)
 case class toCol(vec: mllibVector)
 case class AccessDataRecord(postNum: Int, index: Int, topicDistribution: String, maxprobability: Double, prediction: Int, time: Long, recall: Int)
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

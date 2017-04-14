@@ -13,7 +13,6 @@ import org.lionsoul.jcseg.core.ADictionary;
 import org.lionsoul.jcseg.core.DictionaryFactory;
 import org.lionsoul.jcseg.core.IWord;
 import org.lionsoul.jcseg.core.JcsegException;
-
 import org.lionsoul.jcseg.core.JcsegTaskConfig;
 import org.lionsoul.jcseg.core.SegmentFactory;
 
@@ -114,7 +113,6 @@ public class CopyOfAnaylyzerTools {
 			ADictionary dicc = anaylyzerTools.dic;
 			while ((str = br.readLine()) != null) {
 				i++;
-				// StringReader reader = new StringReader(str);
 				List<String> list = anaylyzerTools.anaylyzerWords(str, configg,
 						dicc);
 				String splitstr = list.toString().replace("[", "")

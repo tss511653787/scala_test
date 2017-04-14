@@ -9,7 +9,7 @@
 	<classpathentry kind="lib" path="Jars/jcseg/jcseg-dicst-1.9.5.jar"/>
 	<classpathentry kind="lib" path="Jars/jcseg/jcseg-elasticsearch-1.9.5.jar"/>
 	<classpathentry kind="lib" path="Jars/jcseg/jcseg-solr-1.9.5.jar"/>
-	<classpathentry kind="lib" path="Jars/spark2.6/activation-1.1.1.jar"/>
+	<classpathentry kind="lib" path="Jars/spark2.6/activation-1.1.1.jar" sourcepath="spark-2.0.1.zip"/>
 	<classpathentry kind="lib" path="Jars/spark2.6/antlr-2.7.7.jar"/>
 	<classpathentry kind="lib" path="Jars/spark2.6/antlr-runtime-3.4.jar"/>
 	<classpathentry kind="lib" path="Jars/spark2.6/antlr4-runtime-4.5.3.jar"/>
@@ -27,7 +27,7 @@
 	<classpathentry kind="lib" path="Jars/spark2.6/base64-2.3.8.jar"/>
 	<classpathentry kind="lib" path="Jars/spark2.6/bcprov-jdk15on-1.51.jar"/>
 	<classpathentry kind="lib" path="Jars/spark2.6/bonecp-0.8.0.RELEASE.jar"/>
-	<classpathentry kind="lib" path="Jars/spark2.6/breeze_2.11-0.11.2.jar"/>
+	<classpathentry kind="lib" path="Jars/spark2.6/breeze_2.11-0.11.2.jar" sourcepath="spark-2.0.1.zip"/>
 	<classpathentry kind="lib" path="Jars/spark2.6/breeze-macros_2.11-0.11.2.jar"/>
 	<classpathentry kind="lib" path="Jars/spark2.6/calcite-avatica-1.2.0-incubating.jar"/>
 	<classpathentry kind="lib" path="Jars/spark2.6/calcite-core-1.2.0-incubating.jar"/>
@@ -172,8 +172,8 @@
 	<classpathentry kind="lib" path="Jars/spark2.6/py4j-0.10.3.jar"/>
 	<classpathentry kind="lib" path="Jars/spark2.6/pyrolite-4.9.jar"/>
 	<classpathentry kind="lib" path="Jars/spark2.6/RoaringBitmap-0.5.11.jar"/>
-	<classpathentry kind="lib" path="Jars/spark2.6/scala-compiler-2.11.8.jar"/>
-	<classpathentry kind="lib" path="Jars/spark2.6/scala-library-2.11.8.jar"/>
+	<classpathentry kind="lib" path="Jars/spark2.6/scala-compiler-2.11.8.jar" sourcepath="spark-2.0.1.zip"/>
+	<classpathentry kind="lib" path="Jars/spark2.6/scala-library-2.11.8.jar" sourcepath="spark-2.0.1.zip"/>
 	<classpathentry kind="lib" path="Jars/spark2.6/scala-parser-combinators_2.11-1.0.4.jar"/>
 	<classpathentry kind="lib" path="Jars/spark2.6/scala-reflect-2.11.8.jar"/>
 	<classpathentry kind="lib" path="Jars/spark2.6/scala-xml_2.11-1.0.2.jar"/>
@@ -188,14 +188,14 @@
 	<classpathentry kind="lib" path="Jars/spark2.6/spark-hive_2.11-2.0.1.jar"/>
 	<classpathentry kind="lib" path="Jars/spark2.6/spark-hive-thriftserver_2.11-2.0.1.jar"/>
 	<classpathentry kind="lib" path="Jars/spark2.6/spark-launcher_2.11-2.0.1.jar"/>
-	<classpathentry kind="lib" path="Jars/spark2.6/spark-mllib_2.11-2.0.1.jar"/>
-	<classpathentry kind="lib" path="Jars/spark2.6/spark-mllib-local_2.11-2.0.1.jar"/>
+	<classpathentry kind="lib" path="Jars/spark2.6/spark-mllib_2.11-2.0.1.jar" sourcepath="spark-2.0.1.zip"/>
+	<classpathentry kind="lib" path="Jars/spark2.6/spark-mllib-local_2.11-2.0.1.jar" sourcepath="spark-2.0.1.zip"/>
 	<classpathentry kind="lib" path="Jars/spark2.6/spark-network-common_2.11-2.0.1.jar"/>
 	<classpathentry kind="lib" path="Jars/spark2.6/spark-network-shuffle_2.11-2.0.1.jar"/>
 	<classpathentry kind="lib" path="Jars/spark2.6/spark-repl_2.11-2.0.1.jar"/>
-	<classpathentry kind="lib" path="Jars/spark2.6/spark-sketch_2.11-2.0.1.jar"/>
-	<classpathentry kind="lib" path="Jars/spark2.6/spark-sql_2.11-2.0.1.jar"/>
-	<classpathentry kind="lib" path="Jars/spark2.6/spark-streaming_2.11-2.0.1.jar"/>
+	<classpathentry kind="lib" path="Jars/spark2.6/spark-sketch_2.11-2.0.1.jar" sourcepath="spark-2.0.1.zip"/>
+	<classpathentry kind="lib" path="Jars/spark2.6/spark-sql_2.11-2.0.1.jar" sourcepath="spark-2.0.1.zip"/>
+	<classpathentry kind="lib" path="Jars/spark2.6/spark-streaming_2.11-2.0.1.jar" sourcepath="spark-2.0.1.zip"/>
 	<classpathentry kind="lib" path="Jars/spark2.6/spark-tags_2.11-2.0.1.jar"/>
 	<classpathentry kind="lib" path="Jars/spark2.6/spark-unsafe_2.11-2.0.1.jar"/>
 	<classpathentry kind="lib" path="Jars/spark2.6/spark-yarn_2.11-2.0.1.jar"/>
