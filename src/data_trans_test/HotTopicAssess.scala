@@ -17,7 +17,7 @@ object HotTopicAssess {
   Logger.getLogger("org.eclipse.jetty.server").setLevel(Level.OFF)
   def main(args: Array[String]) {
     val conf = new SparkConf()
-      .setMaster("local[2]")
+      .setMaster("local")
       .setAppName("HotTopicAssess")
     val spark = new SparkContext(conf)
     val sqlContext = new org.apache.spark.sql.SQLContext(spark)

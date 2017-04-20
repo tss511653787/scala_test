@@ -19,7 +19,8 @@ object Copy_testdata {
   Logger.getLogger("org.eclipse.jetty.server").setLevel(Level.OFF)
   def main(args: Array[String]) {
     val conf = new SparkConf()
-      .setMaster("local[2]")
+      //***这个地方必须是local***
+      .setMaster("local")
       .setAppName("testdata")
     val sc = new SparkContext(conf)
     val sqlContext = new org.apache.spark.sql.SQLContext(sc)
@@ -31,6 +32,7 @@ object Copy_testdata {
 
     //引入隐式转换
     import sqlContext.implicits._
+
 
     //文件路径 
     val path = "F:/data/Car_data/Cardata5000.csv"

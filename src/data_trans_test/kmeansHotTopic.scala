@@ -40,7 +40,7 @@ object kmeansFindPaperHotTopic {
   Logger.getLogger("org.eclipse.jetty.server").setLevel(Level.OFF)
   def main(args: Array[String]) {
     val conf = new SparkConf()
-      .setMaster("local[2]")
+      .setMaster("local")
       .setAppName("kmeans-test")
     val spark = new SparkContext(conf)
     //引入spark sql标签
@@ -241,8 +241,7 @@ object kmeansFindPaperHotTopic {
 
     datapre.repartition(1).saveAsTextFile(newpath + "datapre")
     //方法：计算向量的欧拉距离
-    def computeDistance(v1: DenseVector[Double], v2: DenseVector[Double])
-    = pow(v1 - v2, 2).sum
+    def computeDistance(v1: DenseVector[Double], v2: DenseVector[Double]) = pow(v1 - v2, 2).sum
     //case匹配需要的属性
     val dataVectorComputeDist = datapre.map {
       case Row(index: Int, words: WrappedArray[String], features: Vector, prediction: Int, text: String) =>
@@ -502,7 +501,6 @@ object kmeansFindPaperHotTopic {
             }
             val arr = arrbuf.toArray
             arr
-
         }
         //保存第K个聚类结果每条文档热词
         Hotwords.cache()
