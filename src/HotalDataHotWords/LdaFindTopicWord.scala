@@ -82,7 +82,6 @@ object LdaFindTopicWord {
         var tfidfvalues = values
         val arrbuf = new ArrayBuffer[String]
         for (i <- 1 to 4) {
-          //寻找每个向量中tf-idf最大的5个词语
           val findmax = tfidfvalues.indexOf(tfidfvalues.max)
           //找到最大值后置0
           tfidfvalues(findmax) = 0.0
@@ -147,7 +146,7 @@ object LdaFindTopicWord {
 
     //LDA提取topic
     val lda = new LDA()
-      .setK(15)
+      .setK(30)
       .setMaxIter(100)
       .setOptimizer("em")
       .setFeaturesCol("LDAvec")
@@ -175,6 +174,60 @@ object LdaFindTopicWord {
     topicWithword.show
     topicWithword.rdd.repartition(1).saveAsTextFile(outputpath + "TopicHotWord")
     //  spark.stop()
+    
+    //提取前后词语
+    val findIn = newDF.rdd.map {
+      case Row(index: Int, splitwords: String, score: Double, comments: String, customer_type: String, words: WrappedArray[String], ldavec: Vector, tfIdfvec: Vector) =>
+        (words.toArray)
+    }
+    val findbuf = new ArrayBuffer[String]
+    val findInArr = findIn.collect
+    for (i <- 0 to findInArr.length - 1) {
+      findbuf ++= findInArr(i)
+    }
+    val findarr = findbuf.toArray
+    val wordsArr = Array("服务", "设施", "早餐", "位置", "环境", "性价比",
+      "装修", "价格", "房费", "卫生", "房间", "大堂", "娱乐", "健身", "停车场",
+      "入住", "效率", "服务态度", "交通", "卫生间", "安静", "干净", "咖啡厅", "网络",
+      "周边", "公交", "地铁", "前台", "空调", "热水")
+    for (word <- wordsArr) {
+      findwords(findarr, word, outputpath)
+    }
+
+  }
+  def findwords(strArr: Array[String], word: String, outpath: String) {
+    val answer = new ArrayList[String]()
+    for (i <- 0 to strArr.length - 1) {
+      var temp = new StringBuilder()
+      if (strArr(i).equals(word)) {
+        temp ++= "(" + strArr(i) + ")"
+        //找到词
+        var k = i
+        //将前面4个人词加入到temps
+        var m = 0
+        while (((k - 1) != -1) && (m != 3)) {
+          temp.insert(0, strArr(k - 1) + " ")
+          m = m + 1
+          k = k - 1
+        }
+        //将后面4个加入到temp
+        temp.append(" ")
+        k = i
+        var n = 0
+        while (((k + 1) != strArr.length) && (n != 3)) {
+          temp.append(strArr(k + 1) + " ")
+          n = n + 1
+          k = k + 1
+        }
+        //加入到answer
+        answer.add(temp.toString())
+      }
+    }
+    //输出到文件
+    val out = new PrintWriter(outpath + word)
+    val res = answer.toArray()
+    res.foreach(out.println)
+    out.close()
   }
 }
 case class TFdatarecord(index: Int, splitwords: String, score: Double, comments: String, customer_type: String)

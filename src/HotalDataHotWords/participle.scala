@@ -30,7 +30,7 @@ object participle {
     //引入隐式转换
     import sqlContext.implicits._
     //文件路径 
-    val path = "C:/Users/Administrator/Desktop/wanghao/wanhaodata_d.csv"
+    val path = "C:/Users/Administrator/Desktop/all.csv"
     val newpath = "C:/Users/Administrator/Desktop/ouput/"
 
     //读取文件
