@@ -17,7 +17,7 @@ object HotTopicAssess {
   Logger.getLogger("org.eclipse.jetty.server").setLevel(Level.OFF)
   def main(args: Array[String]) {
     val conf = new SparkConf()
-      .setMaster("local")
+      .setMaster("local[*]")
       .setAppName("HotTopicAssess")
     val spark = new SparkContext(conf)
     val sqlContext = new org.apache.spark.sql.SQLContext(spark)
@@ -32,7 +32,7 @@ object HotTopicAssess {
     //初始化保存文件
     val indicatorRes = new PrintWriter(outputpath + "indicatorRes")
     //变量i是聚类个数，值是LDA聚设置的K值
-    for (i <- 0 to 9) {
+    for (i <- 0 to 12) {
       //输入路径
       val inputpath = s"C:/Users/Administrator/Desktop/clustervec/clustervec$i"
       val vecinput = "C:/Users/Administrator/Desktop/clustervec/saveAvgVec"
@@ -44,13 +44,13 @@ object HotTopicAssess {
       //获取当前的时间戳
       def getNowDate(): String = {
         var now: Date = new Date()
-        var dateFormat: SimpleDateFormat = new SimpleDateFormat("yyyy-MM-dd,HH:mm")
+        var dateFormat: SimpleDateFormat = new SimpleDateFormat("yyyy/MM/dd,HH:mm")
         var nowtime = dateFormat.format(now)
         nowtime
       }
       //计算和当前时间戳的时间差(/秒)
       def caculateTime(start_time: String, end_time: String): Long = {
-        var df: SimpleDateFormat = new SimpleDateFormat("yyyy-MM-dd,HH:mm")
+        var df: SimpleDateFormat = new SimpleDateFormat("yyyy/MM/dd,HH:mm")
         var begin: Date = df.parse(start_time)
         var end: Date = df.parse(end_time)
         var between: Long = (end.getTime() - begin.getTime()) / 1000
@@ -161,6 +161,7 @@ object HotTopicAssess {
       val param4 = 0.1
       val param5 = 0.1
       var intension = vecArrDou(clusterNum)
+      var Outintension = intension * 0.1
       val hotDeg = eleNumDeg * param1 + attenDeg * param2 + timeDeg * param3 + pd * param4 + prueDeg * param5
       var totalHeat = intension * 0.1 + hotDeg
       //记录保存
@@ -184,7 +185,7 @@ object HotTopicAssess {
       indicatorRes.println(pd)
       indicatorRes.println(prueDeg)
       indicatorRes.println(hotDeg)
-      indicatorRes.println(intension)
+      indicatorRes.println(Outintension)
       indicatorRes.println(totalHeat)
       indicatorRes.println
 
