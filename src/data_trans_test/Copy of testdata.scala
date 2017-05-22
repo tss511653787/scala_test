@@ -35,7 +35,7 @@ object Copy_testdata {
 
 
     //文件路径 
-    val path = "F:/data/Car_data/Cardata5000.csv"
+    val path = "F:/data/Car_data/Data_7days/AllData/252/data_Car_set/day7/2017-03-10.csv"
     //读取文件
     val text = sc.textFile(path)
     text.cache()

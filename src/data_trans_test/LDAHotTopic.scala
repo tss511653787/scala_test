@@ -27,17 +27,17 @@ object LDAHotTopic {
   Logger.getLogger("org.eclipse.jetty.server").setLevel(Level.OFF)
   def main(args: Array[String]) {
     val conf = new SparkConf()
-      .setMaster("local[*]")
+      .setMaster("local")
       .setAppName("LDA-test")
     val spark = new SparkContext(conf)
     val sqlContext = new org.apache.spark.sql.SQLContext(spark)
     import sqlContext.implicits._
     val deskPath = "C:/Users/Administrator/Desktop/"
-    val inputpath = "F:/data/Car_data/"
+    val inputpath = "C:/Users/Administrator/Desktop/"
     val outputpath = "C:/Users/Administrator/Desktop/LDAresult/"
     //建立cherkpoint点
     val cherkPointPath = "C:/Users/Administrator/Desktop/cherkpoint"
-    val src = spark.textFile(inputpath + "kmeans_noST_noLC")
+    val src = spark.textFile(inputpath + "ldain")
     src.cache()
     val srcDS = src.map {
       line =>

@@ -44,13 +44,13 @@ object HotTopicAssess {
       //获取当前的时间戳
       def getNowDate(): String = {
         var now: Date = new Date()
-        var dateFormat: SimpleDateFormat = new SimpleDateFormat("yyyy/MM/dd,HH:mm")
+        var dateFormat: SimpleDateFormat = new SimpleDateFormat("yyyy-MM-dd,HH:mm")
         var nowtime = dateFormat.format(now)
         nowtime
       }
       //计算和当前时间戳的时间差(/秒)
       def caculateTime(start_time: String, end_time: String): Long = {
-        var df: SimpleDateFormat = new SimpleDateFormat("yyyy/MM/dd,HH:mm")
+        var df: SimpleDateFormat = new SimpleDateFormat("yyyy-MM-dd,HH:mm")
         var begin: Date = df.parse(start_time)
         var end: Date = df.parse(end_time)
         var between: Long = (end.getTime() - begin.getTime()) / 1000
