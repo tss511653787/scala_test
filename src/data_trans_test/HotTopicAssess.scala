@@ -39,7 +39,6 @@ object HotTopicAssess {
       val DS = spark.textFile(inputpath)
       DS.cache
       DS.checkpoint()
-
       //时间戳处理
       //获取当前的时间戳
       def getNowDate(): String = {

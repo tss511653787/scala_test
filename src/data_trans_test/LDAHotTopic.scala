@@ -75,7 +75,7 @@ object LDAHotTopic {
 
     val LDAinput = LDAWithvec.select("index", "words", "LDAvec", "time", "recall")
     LDAinput.cache()
-    
+
     val lda = new LDA()
       .setK(topicnum)
       .setMaxIter(maxiter)
@@ -163,22 +163,27 @@ object LDAHotTopic {
     //            lpouput.close
     //主题数目K对logLikelihood值的影响
     //问题：可能由于目前数据量很小 k值在3-20间logll值一直递减
-//    val numKlogll = new PrintWriter(outputpath + "numKlogll")
-//    val numKloglp = new PrintWriter(outputpath + "numKloglp")
-//    for (i <- Array(3, 5, 7, 10, 15, 20, 25, 30, 40, 50, 70, 100, 120, 150, 200, 500)) {
-//      val testlda = new LDA()
-//        .setK(i)
-//        .setMaxIter(150)
-//        .setOptimizer("online")
-//        .setFeaturesCol("LDAvec")
-//      val testmodel = testlda.fit(LDAinput)
-//      val testll = testmodel.logLikelihood(LDAinput)
-//      val testlp = testmodel.logPerplexity(LDAinput)
-//      numKlogll.print(testll + "\n")
-//      numKloglp.print(testlp + "\n")
-//    }
-//    numKlogll.close
-//    numKloglp.close
+    val numKlogll = new PrintWriter(outputpath + "numKlogll")
+    val numKloglp = new PrintWriter(outputpath + "numKloglp")
+    for (i <- Array(3, 5, 7, 10, 15, 20, 25, 30, 40, 50, 70, 100, 120, 150, 200, 500)) {
+      val startTime = System.nanoTime();
+      val testlda = new LDA()
+        .setK(i)
+        .setMaxIter(150)
+        .setOptimizer("online")
+        .setFeaturesCol("LDAvec")
+      val testmodel = testlda.fit(LDAinput)
+      val testll = testmodel.logLikelihood(LDAinput)
+      val testlp = testmodel.logPerplexity(LDAinput)
+      numKlogll.print(testll + "\n")
+      numKloglp.print(testlp + "\n")
+      val endTime = System.nanoTime();
+      println(s"K:$i:" + (endTime - startTime) / 1e9)
+      //try?
+      System.gc()
+    }
+    numKlogll.close
+    numKloglp.close
     //EM 方法，分析DocConcentration的影响，算法默认值是(50/k)+1
     //    val DocConcentrationloglp = new PrintWriter(outputpath + "DocConcentration")
     //    for (i <- Array(1.2, 3, 5, 7, 9, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20)) {
@@ -194,7 +199,7 @@ object LDAHotTopic {
     //      DocConcentrationloglp.print(lp + "\n")
     //    }
     //    DocConcentrationloglp.close
-    
+
     //对语料进行聚类
     val topicProb = ldamodel.transform(LDAinput)
     topicProb.show
