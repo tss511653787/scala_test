@@ -36,6 +36,7 @@ object KeywordExtractor {
 
     val num = segWord.size - window
 
+    //to 是包含num
     for (i <- 0 to num) {
 
       val item = new ListBuffer[(String)]
@@ -69,6 +70,10 @@ object KeywordExtractor {
     }
 
     // 构建关键词图的边
+    /* edgeSet参照案列(收藏夹)数据格式
+     * 这里是构建了双向的有向图
+     * 
+     * */
     edgeSet.toArray.foreach {
       edge =>
         {

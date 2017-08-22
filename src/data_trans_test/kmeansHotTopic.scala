@@ -45,6 +45,9 @@ object kmeansFindPaperHotTopic {
     val spark = new SparkContext(conf)
     //引入spark sql标签
     val sqlContext = new org.apache.spark.sql.SQLContext(spark)
+    /*
+     * 引入隐式类集合
+     * */
     import sqlContext.implicits._
     //建立cherkpoint点
     val cherkPointPath = "C:/Users/Administrator/Desktop/cherkpoint"
