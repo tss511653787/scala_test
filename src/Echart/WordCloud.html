@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html style="height: 100%">
+<head>
+    <meta charset="utf-8">
+</head>
+<body style="height: 100%; margin: 0">
+<div id="container" style="width: 600px; height: 500px;"></div>
+<br>
+<script type="text/javascript" src="http://data-visual.cn/datav/src/js/echarts/echarts.min.js"></script>
+<script type="text/javascript"
+        src="http://data-visual.cn/datav/src/js/echarts/extension/echarts-wordcloud.min.js"></script>
+<script type="text/javascript">
+    var myChart = echarts.init(document.getElementById('container'));
+
+    var option = {
+        toolbox: {
+            show: true,
+            feature: {
+                dataView: {
+                    show: true,
+                    readOnly: true
+                },
+                restore: {
+                    show: true
+                },
+                saveAsImage: {
+                    show: true
+                }
+            }
+        },
+        backgroundColor: new echarts.graphic.RadialGradient(0.3, 0.3, 0.8,
+            [{
+                offset: 0,
+                color: '#f7f8fa'
+            }, {
+                offset: 1,
+                color: '#cdd0d5'
+            }]),
+        title: {
+            top: "top",
+            left: "center",
+            text: "热门话题词云图",
+            link: 'https://neu.edu.cn',
+            subtext: 'neu.tss',
+            sublink: 'http://neu.edu.cn',
+        },
+        tooltip: {},
+        series: [{
+            type: 'wordCloud',
+            gridSize: 5,
+            sizeRange: [12, 100],
+            rotationRange: [0, 30],
+            shape: 'circle',
+            width: 600,
+            height: 400,
+            textStyle: {
+                normal: {
+                    color: function () {
+                        return 'rgb(' + [
+                                Math.round(Math.random() * 160),
+                                Math.round(Math.random() * 160),
+                                Math.round(Math.random() * 160)
+                            ].join(',') + ')';
+                    }
+                },
+                emphasis: {
+                    shadowBlur: 10,
+                    shadowColor: '#333'
+                }
+            },
+            data: [
+                {
+                    name: '热门话题',
+                    value: 2000,
+                    textStyle: {
+                        normal: {
+                            color: '#576db7'
+                        },
+                        emphasis: {
+                            color: '#576db7'
+                        }
+                    }
+                },
+                {
+                    name: '雅阁',
+                    value: 1000
+                },
+
+                {
+                    name: '迈腾',
+                    value: 800
+                },
+                {
+                    name: '落地',
+                    value: 800
+                }, {
+                    name: '推荐',
+                    value: 700
+                }, {
+                    name: '配置',
+                    value: 600
+                }, {
+                    name: '性价比',
+                    value: 500
+                }, {
+                    name: '家用',
+                    value: 700
+                }, {
+                    name: '身高',
+                    value: 700
+                }, {
+                    name: '父母',
+                    value: 680
+                }, {
+                    name: '首付',
+                    value: 650
+                }, {
+                    name: '月薪',
+                    value: 600
+                }, {
+                    name: '排量',
+                    value: 500
+                }, {
+                    name: '阿特兹',
+                    value: 680
+                }, {
+                    name: '君越',
+                    value: 600
+                }, {
+                    name: '雅阁',
+                    value: 650
+                }, {
+                    name: '内饰',
+                    value: 500
+                }, {
+                    name: '好看',
+                    value: 400
+                }, {
+                    name: '耐看',
+                    value: 400
+                }, {
+                    name: '落地',
+                    value: 750
+                }, {
+                    name: '轩逸',
+                    value: 750
+                }, {
+                    name: '飞度',
+                    value: 780
+                }, {
+                    name: '省油',
+                    value: 850
+                }, {
+                    name: '奔驰',
+                    value: 800
+                }, {
+                    name: '宝马',
+                    value: 800
+                }, {
+                    name: '内饰',
+                    value: 750
+                }, {
+                    name: '空间',
+                    value: 750
+                }, {
+                    name: '外观',
+                    value: 750
+                }, {
+                    name: '奥迪',
+                    value: 700
+                }, {
+                    name: '思域',
+                    value: 650
+                }, {
+                    name: '女生',
+                    value: 500
+                }, {
+                    name: '身高',
+                    value: 450
+                }, {
+                    name: '皮实',
+                    value: 500
+                }, {
+                    name: '保值',
+                    value: 750
+                }, {
+                    name: '分析',
+                    value: 400
+                }, {
+                    name: '发动机',
+                    value: 800
+                }, {
+                    name: '涡轮',
+                    value: 700
+                }, {
+                    name: '技术',
+                    value: 700
+                }, {
+                    name: '涡轮增压',
+                    value: 750
+                }, {
+                    name: '车型',
+                    value: 700
+                }, {
+                    name: '油耗',
+                    value: 700
+                }, {
+                    name: '比亚迪',
+                    value: 850
+                }, {
+                    name: '品牌',
+                    value: 850
+                }, {
+                    name: '国产',
+                    value: 800
+                }, {
+                    name: '众泰',
+                    value: 700
+                }, {
+                    name: '吉利',
+                    value: 700
+                }, {
+                    name: '销量',
+                    value: 700
+                }
+            ]
+        }]
+    };
+
+    myChart.setOption(option);
+</script>
+</body>
+</html>

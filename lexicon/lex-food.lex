@@ -11,3 +11,4 @@ CJK_WORDS
 炸薯条/n/zha shu tiao/null
 麻辣烫/n/ma la tang/null
 麻辣干锅/n/ma la gan guo/null
+一会睡
